@@ -34,6 +34,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.travelmates_pamn.ui.theme.TravelMates_PAMNTheme
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,10 +78,61 @@ fun HomeScreen() {
 
 @Composable
 fun PeopleInTownScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("People in Town Screen")
+    val people = listOf(
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain"
+    )
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        items(people) { person ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                    .clickable {
+                        // Azione quando la riga è cliccata
+                    }
+            ) {
+                // Green circle
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(color = Color.Green, shape = CircleShape)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Text details
+                Column {
+                    Text(
+                        text = "Lisa Perez",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "29, from Spain",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
     }
 }
+
 
 @Composable
 fun ProfileScreen() {
@@ -80,17 +143,136 @@ fun ProfileScreen() {
 
 @Composable
 fun FriendsScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Friends Screen")
+    val people = listOf(
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain"
+    )
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        items(people) { person ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                    .clickable {
+                        // Azione quando la riga è cliccata
+                    }
+            ) {
+                // Green circle
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(color = Color.Green, shape = CircleShape)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Text details
+                Column {
+                    Text(
+                        text = "Lisa Perez",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "29, from Spain",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
 fun IncomingRequestsScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Incoming Requests Screen")
+    val people = listOf(
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain",
+        "Lisa Perez, 29, from Spain"
+    )
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        items(people) { person ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                    .clickable {
+                        // Azione quando la riga è cliccata
+                    }
+            ) {
+                // Cerchio verde
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(color = Color.Green, shape = CircleShape)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Text details
+                Column {
+                    Text(
+                        text = "Lisa Perez",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "29, from Spain",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+
+                // Icone dei bottoni
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Bottone con la X
+                    IconButton(onClick = { /* Azione per X */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.Red
+                        )
+                    }
+
+                    // Bottone con il segno di spunta
+                    IconButton(onClick = { /* Azione per il tick */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Check",
+                            tint = Color.Green
+                        )
+                    }
+                }
+            }
+        }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
