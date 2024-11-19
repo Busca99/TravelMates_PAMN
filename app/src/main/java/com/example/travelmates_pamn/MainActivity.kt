@@ -45,11 +45,41 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.*
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
+import androidx.compose.material3.CircularProgressIndicator
+import com.example.travelmates_pamn.model.User
+import com.google.firebase.auth.FirebaseAuth
+import android.widget.Toast
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Inizializza Firebase Auth
+        val auth = FirebaseAuth.getInstance()
+
+        // Esegui login anonimo se l'utente non è già loggato
+        if (auth.currentUser == null) {
+            auth.signInAnonymously()
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        // Login riuscito, avvia l'app
+                        startApp()
+                    } else {
+                        // Gestisci errore
+                        Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+        } else {
+            // Utente già loggato, avvia l'app
+            startApp()
+        }
+    }
+
+    private fun startApp() {
         enableEdgeToEdge()
         setContent {
             TravelMates_PAMNTheme {
@@ -78,55 +108,67 @@ fun HomeScreen() {
 
 @Composable
 fun PeopleInTownScreen() {
-    val people = listOf(
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain"
-    )
+    var users by remember { mutableStateOf<List<User>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        items(people) { person ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-                    .clickable {
-                        // Azione quando la riga è cliccata
-                    }
-            ) {
-                // Green circle
-                Box(
+    // Effetto per caricare gli utenti quando la schermata viene aperta
+    LaunchedEffect(Unit) {
+        val db = FirebaseFirestore.getInstance()
+        try {
+            val snapshot = db.collection("users").get().await()
+            users = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(User::class.java)
+            }
+        } catch (e: Exception) {
+            // Gestione errori
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            items(users) { user ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(60.dp)
-                        .background(color = Color.Green, shape = CircleShape)
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Text details
-                Column {
-                    Text(
-                        text = "Lisa Perez",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                        .clickable {
+                            // Azione quando la riga è cliccata
+                        }
+                ) {
+                    // Foto profilo (per ora un cerchio verde)
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(color = Color.Green, shape = CircleShape)
                     )
-                    Text(
-                        text = "29, from Spain",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Dettagli utente
+                    Column {
+                        Text(
+                            text = user.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${user.age}, from ${user.hometown}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
         }
