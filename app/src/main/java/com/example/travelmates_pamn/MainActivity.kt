@@ -52,6 +52,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import com.example.travelmates_pamn.model.User
 import com.google.firebase.auth.FirebaseAuth
 import android.widget.Toast
+import com.google.firebase.firestore.GeoPoint
+import kotlin.math.*
 
 
 class MainActivity : ComponentActivity() {
@@ -106,21 +108,41 @@ fun HomeScreen() {
     }
 }
 
+private fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
+    val R = 6371.0 // Raggio della Terra in km
+    val lat1 = Math.toRadians(loc1.latitude)
+    val lat2 = Math.toRadians(loc2.latitude)
+    val dLat = Math.toRadians(loc2.latitude - loc1.latitude)
+    val dLon = Math.toRadians(loc2.longitude - loc1.longitude)
+
+    val a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1) * Math.cos(lat2) *
+            Math.sin(dLon/2) * Math.sin(dLon/2)
+    val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+    return R * c
+}
+
 @Composable
 fun PeopleInTownScreen() {
     var users by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Effetto per caricare gli utenti quando la schermata viene aperta
+    // Posizione di test (Valencia)
+    val currentLocation = GeoPoint(39.4699, -0.3763)
+
     LaunchedEffect(Unit) {
         val db = FirebaseFirestore.getInstance()
         try {
             val snapshot = db.collection("users").get().await()
             users = snapshot.documents.mapNotNull { doc ->
                 doc.toObject(User::class.java)
+            }.filter { user ->
+                calculateDistance(currentLocation, user.location) <= 30.0
+            }.sortedBy { user ->
+                calculateDistance(currentLocation, user.location)
             }
         } catch (e: Exception) {
-            // Gestione errori
             e.printStackTrace()
         } finally {
             isLoading = false
@@ -147,7 +169,6 @@ fun PeopleInTownScreen() {
                             // Azione quando la riga è cliccata
                         }
                 ) {
-                    // Foto profilo (per ora un cerchio verde)
                     Box(
                         modifier = Modifier
                             .size(60.dp)
@@ -156,7 +177,6 @@ fun PeopleInTownScreen() {
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Dettagli utente
                     Column {
                         Text(
                             text = user.name,
@@ -166,6 +186,11 @@ fun PeopleInTownScreen() {
                         Text(
                             text = "${user.age}, from ${user.hometown}",
                             style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = "Distance: ${calculateDistance(currentLocation, user.location).toInt()} km",
+                            style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
                     }
