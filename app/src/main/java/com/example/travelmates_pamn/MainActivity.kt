@@ -54,6 +54,7 @@ import com.google.firebase.auth.FirebaseAuth
 import android.widget.Toast
 import com.google.firebase.firestore.GeoPoint
 import kotlin.math.*
+import android.util.Log
 
 
 class MainActivity : ComponentActivity() {
@@ -299,72 +300,155 @@ fun FriendsScreen() {
 
 @Composable
 fun IncomingRequestsScreen() {
-    val people = listOf(
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain"
-    )
+    var incomingRequests by remember { mutableStateOf<List<User>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val currentUserId = "user1"
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        items(people) { person ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-                    .clickable {
-                        // Azione quando la riga è cliccata
-                    }
-            ) {
-                // Cerchio verde
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .background(color = Color.Green, shape = CircleShape)
-                )
+    // Funzione per ricaricare le richieste
+    val loadRequests = suspend {
+        val db = FirebaseFirestore.getInstance()
+        val friendships = db.collection("friendships")
+            .whereArrayContains("userIds", currentUserId)
+            .whereEqualTo("status", "pending")
+            .whereNotEqualTo("sender", currentUserId)
+            .get()
+            .await()
 
-                Spacer(modifier = Modifier.width(16.dp))
+        val senderIds = friendships.documents.map { doc ->
+            doc.getString("sender")
+        }.filterNotNull()
 
-                // Text details
-                Column {
-                    Text(
-                        text = "Lisa Perez",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "29, from Spain",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
+        if (senderIds.isNotEmpty()) {
+            val sendersSnapshots = db.collection("users")
+                .whereIn("id", senderIds)
+                .get()
+                .await()
+
+            incomingRequests = sendersSnapshots.documents.mapNotNull { doc ->
+                doc.toObject(User::class.java)
+            }
+        } else {
+            incomingRequests = emptyList()
+        }
+    }
+
+    // Carica le richieste iniziali
+    LaunchedEffect(Unit) {
+        try {
+            loadRequests()
+        } catch (e: Exception) {
+            Log.e("IncomingRequests", "Errore: ${e.message}")
+        } finally {
+            isLoading = false
+        }
+    }
+
+    fun acceptFriendRequest(senderId: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("friendships")
+            .whereArrayContains("userIds", currentUserId)
+            .whereEqualTo("sender", senderId)
+            .whereEqualTo("status", "pending")
+            .get()
+            .addOnSuccessListener { documents ->
+                for (document in documents) {
+                    document.reference.update("status", "accepted")
+                        .addOnSuccessListener {
+                            // Rimuovi l'utente dalla lista locale
+                            incomingRequests = incomingRequests.filter { it.id != senderId }
+                        }
                 }
+            }
+    }
 
-                // Icone dei bottoni
+    fun rejectFriendRequest(senderId: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("friendships")
+            .whereArrayContains("userIds", currentUserId)
+            .whereEqualTo("sender", senderId)
+            .whereEqualTo("status", "pending")
+            .get()
+            .addOnSuccessListener { documents ->
+                for (document in documents) {
+                    document.reference.delete()
+                        .addOnSuccessListener {
+                            // Rimuovi l'utente dalla lista locale
+                            incomingRequests = incomingRequests.filter { it.id != senderId }
+                        }
+                }
+            }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else if (incomingRequests.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No incoming friend requests")
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            items(incomingRequests) { sender ->
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
                 ) {
-                    // Bottone con la X
-                    IconButton(onClick = { /* Azione per X */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = Color.Red
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .background(color = Color.Green, shape = CircleShape)
                         )
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column {
+                            Text(
+                                text = sender.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${sender.age}, from ${sender.hometown}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray
+                            )
+                        }
                     }
 
-                    // Bottone con il segno di spunta
-                    IconButton(onClick = { /* Azione per il tick */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Check",
-                            tint = Color.Green
-                        )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IconButton(onClick = {
+                            rejectFriendRequest(sender.id)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Reject",
+                                tint = Color.Red
+                            )
+                        }
+
+                        IconButton(onClick = {
+                            acceptFriendRequest(sender.id)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Accept",
+                                tint = Color.Green
+                            )
+                        }
                     }
                 }
             }
