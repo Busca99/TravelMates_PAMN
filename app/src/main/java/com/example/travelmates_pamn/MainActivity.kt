@@ -210,55 +210,87 @@ fun ProfileScreen() {
 
 @Composable
 fun FriendsScreen() {
-    val people = listOf(
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain",
-        "Lisa Perez, 29, from Spain"
-    )
+    var friends by remember { mutableStateOf<List<User>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        items(people) { person ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-                    .clickable {
-                        // Azione quando la riga è cliccata
-                    }
-            ) {
-                // Green circle
-                Box(
+    // ID dell'utente corrente (per ora hardcoded, poi lo prenderemo dall'auth)
+    val currentUserId = "user1"
+
+    LaunchedEffect(Unit) {
+        val db = FirebaseFirestore.getInstance()
+        try {
+            // Ottieni tutte le amicizie accettate dove l'utente corrente è uno dei due amici
+            val friendships = db.collection("friendships")
+                .whereArrayContains("userIds", currentUserId)
+                .whereEqualTo("status", "accepted")
+                .get()
+                .await()
+
+            // Estrai gli ID degli amici
+            val friendIds = friendships.documents.flatMap { doc ->
+                doc.get("userIds") as List<String>
+            }.filter { it != currentUserId }
+
+            // Ottieni i dettagli degli utenti amici
+            if (friendIds.isNotEmpty()) {
+                val friendsSnapshots = db.collection("users")
+                    .whereIn("id", friendIds)
+                    .get()
+                    .await()
+
+                friends = friendsSnapshots.documents.mapNotNull { doc ->
+                    doc.toObject(User::class.java)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            items(friends) { friend ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(60.dp)
-                        .background(color = Color.Green, shape = CircleShape)
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Text details
-                Column {
-                    Text(
-                        text = "Lisa Perez",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                        .clickable {
+                            // Azione quando la riga è cliccata
+                        }
+                ) {
+                    // Cerchio verde (placeholder per la foto profilo)
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(color = Color.Green, shape = CircleShape)
                     )
-                    Text(
-                        text = "29, from Spain",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Dettagli dell'amico
+                    Column {
+                        Text(
+                            text = friend.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${friend.age}, from ${friend.hometown}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
         }
