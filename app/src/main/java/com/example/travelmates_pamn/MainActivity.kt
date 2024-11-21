@@ -62,11 +62,37 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
+import android.Manifest
+import android.annotation.SuppressLint
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 
 
 class MainActivity : ComponentActivity() {
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    private val locationPermissionRequest = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        when {
+            permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+                    permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+                // Permessi ottenuti, aggiorna la posizione
+                updateUserLocation()
+            }
+            else -> {
+                Toast.makeText(this, "Location permissions are required", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Inizializza il client della posizione
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Inizializza Firebase Auth
         val auth = FirebaseAuth.getInstance()
@@ -76,18 +102,100 @@ class MainActivity : ComponentActivity() {
             auth.signInAnonymously()
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
-                        // Login riuscito, avvia l'app
+                        // Login riuscito, richiedi i permessi di posizione
+                        requestLocationPermissions()
                         startApp()
                     } else {
-                        // Gestisci errore
                         Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show()
                     }
                 }
         } else {
-            // Utente già loggato, avvia l'app
+            // Utente già loggato, richiedi i permessi di posizione
+            requestLocationPermissions()
             startApp()
         }
     }
+
+    private fun requestLocationPermissions() {
+        locationPermissionRequest.launch(arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ))
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun updateUserLocation() {
+        Log.d("Location", "Iniziando aggiornamento posizione...")
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { location ->
+                if (location != null) {
+                    Log.d("Location", "Posizione ottenuta: ${location.latitude}, ${location.longitude}")
+
+                    val db = FirebaseFirestore.getInstance()
+                    val currentUserId = "user1"
+                    val geoPoint = GeoPoint(location.latitude, location.longitude)
+
+                    Log.d("Location", "Aggiornamento database per utente: $currentUserId")
+
+                    // Cerca il documento basato sul campo "id" all'interno dei documenti
+                    db.collection("users")
+                        .whereEqualTo("id", currentUserId)
+                        .get()
+                        .addOnSuccessListener { querySnapshot ->
+                            if (!querySnapshot.isEmpty) {
+                                // Documento trovato
+                                val document = querySnapshot.documents.first()
+                                db.collection("users")
+                                    .document(document.id)
+                                    .update("location", geoPoint)
+                                    .addOnSuccessListener {
+                                        Log.d("Location", "Posizione aggiornata con successo")
+                                        Toast.makeText(this, "Location updated successfully", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("Location", "Errore nell'aggiornamento: ${e.message}")
+                                        Toast.makeText(this, "Error updating location", Toast.LENGTH_SHORT).show()
+                                    }
+                            } else {
+                                // Documento non trovato, crealo
+                                Log.d("Location", "Documento non trovato, creazione nuovo utente")
+                                val newUser = hashMapOf(
+                                    "id" to currentUserId,
+                                    "name" to "User 1",
+                                    "age" to 25,
+                                    "hometown" to "Unknown",
+                                    "currentCity" to "Unknown",
+                                    "location" to geoPoint
+                                )
+
+                                db.collection("users")
+                                    .add(newUser)
+                                    .addOnSuccessListener {
+                                        Log.d("Location", "Nuovo utente creato con successo")
+                                        Toast.makeText(this, "New user created with location", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("Location", "Errore nella creazione utente: ${e.message}")
+                                        Toast.makeText(this, "Error creating user", Toast.LENGTH_SHORT).show()
+                                    }
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("Location", "Errore nella query: ${e.message}")
+                            Toast.makeText(this, "Error querying user", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Log.e("Location", "Posizione null")
+                    Toast.makeText(this, "Could not get location", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Location", "Errore nell'ottenere la posizione: ${e.message}")
+                Toast.makeText(this, "Error getting location", Toast.LENGTH_SHORT).show()
+            }
+    }
+
 
     private fun startApp() {
         enableEdgeToEdge()
@@ -138,6 +246,9 @@ fun PeopleInTownScreen() {
 
     // Posizione di test (Valencia)
     val currentLocation = GeoPoint(39.4699, -0.3763)
+
+    // ID dell'utente corrente (per ora hardcoded, poi lo prenderemo dall'auth)
+    val currentUserId = "user1"
 
     LaunchedEffect(Unit) {
         val db = FirebaseFirestore.getInstance()
