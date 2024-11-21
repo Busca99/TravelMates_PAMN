@@ -19,6 +19,8 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.Image
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -55,6 +57,11 @@ import android.widget.Toast
 import com.google.firebase.firestore.GeoPoint
 import kotlin.math.*
 import android.util.Log
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
 
 
 class MainActivity : ComponentActivity() {
@@ -204,10 +211,118 @@ fun PeopleInTownScreen() {
 
 @Composable
 fun ProfileScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("My Profile Screen")
+    // ToDo: add exchange with login
+    // get birthday
+    var name by remember { mutableStateOf("Lisa Meyer") }
+    var age by remember { mutableStateOf("date") }
+    var hometown by remember { mutableStateOf("Ohio") }
+    var location by remember { mutableStateOf("Las Palmas, Spain") }
+    var bio by remember { mutableStateOf("I like traveling!") }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            // Profile Picture
+            Image(
+                painter = painterResource(id = R.drawable.default_profile), // Replace with your drawable
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Name
+            TextBoxForProfile(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Name") }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Age
+            TextBoxForProfile(
+                value = age,
+                onValueChange = { age = it },
+                label = { Text("Age") }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Home Town
+            TextBoxForProfile(
+                value = hometown,
+                onValueChange = { hometown = it },
+                label = { Text("Hometown") }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            TextBoxForProfile(
+                value = location,
+                onValueChange = {location = it},
+                label = {Text("Current Location")}
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            MultiLineTextBoxForProfile(
+                value = bio,
+                onValueChange = {bio = it},
+                label = {Text("About Me")}
+            )
+        }
     }
 }
+
+@Composable
+fun TextBoxForProfile(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        singleLine = true
+    )
+}
+
+@Composable
+fun MultiLineTextBoxForProfile(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: @Composable () -> Unit,
+    maxLines: Int = 4,  // Default to 4 lines, you can adjust this
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        modifier = modifier,
+        singleLine = false,  // This enables multi-line input
+        minLines = 3,
+        maxLines = maxLines,
+        //textStyle = TextStyle(fontSize = 16.sp),
+        shape = RoundedCornerShape(8.dp)
+    )
+}
+
 
 @Composable
 fun FriendsScreen() {
