@@ -186,7 +186,7 @@ class MainActivity : ComponentActivity() {
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object PeopleInTown : Screen("people_in_town")
-    object Profile : Screen("profile")
+    object MyProfile : Screen("profile")
     object Friends : Screen("friends")
     object IncomingRequests : Screen("incoming_requests")
 }
@@ -578,9 +578,9 @@ fun MainApp() {
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "My Profile") },
-                    selected = currentRoute == Screen.Profile.route,
+                    selected = currentRoute == Screen.MyProfile.route,
                     onClick = {
-                        navigateToScreen(navController, Screen.Profile.route, drawerState, scope)
+                        navigateToScreen(navController, Screen.MyProfile.route, drawerState, scope)
                     }
                 )
                 NavigationDrawerItem(
@@ -632,7 +632,7 @@ fun MainApp() {
             ) {
                 composable(Screen.Home.route) { HomeScreen() }
                 composable(Screen.PeopleInTown.route) { PeopleInTownScreen() }
-                composable(Screen.Profile.route) { ProfileScreen() }
+                composable(Screen.MyProfile.route) { ProfileScreen() }
                 composable(Screen.Friends.route) { FriendsScreen() }
                 composable(Screen.IncomingRequests.route) { IncomingRequestsScreen() }
             }
