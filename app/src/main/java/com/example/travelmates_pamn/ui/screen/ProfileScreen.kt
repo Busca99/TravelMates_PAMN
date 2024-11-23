@@ -13,23 +13,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,38 +45,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import com.example.travelmates_pamn.R
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
-import java.time.LocalDate
-import java.time.Period
-import java.time.format.DateTimeFormatter
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.travelmates_pamn.R
+import com.example.travelmates_pamn.ui.ProfileViewModel
+
 
 const val textBoxWidth = 0.75f
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    viewModel: ProfileViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // ToDo: add exchange with login
     // get birthday
     val allTags = listOf("Travel", "Food", "Technology", "Sports", "Music")
-
-    var name by remember { mutableStateOf("Lisa Meyer") }
+    
     var age by remember { mutableStateOf("date") }
-    var hometown by remember { mutableStateOf("Ohio") }
     var location by remember { mutableStateOf("Las Palmas, Spain") }
-    var bio by remember { mutableStateOf("I like traveling!") }
     var selectedTags by remember { mutableStateOf(listOf<String>()) }
     var birthday by remember { mutableStateOf("2001-01-01") }
 
-    var isEditing by remember { mutableStateOf(false) }
 
 
     Surface(
@@ -103,21 +101,21 @@ fun ProfileScreen() {
 
             // Name
             TextBoxForProfile(
-                value = name,
-                onValueChange = { name = it },
+                value = uiState.name,
+                onValueChange = { viewModel.updateName(it) },
                 label = { Text("Name") },
-                isEditing = isEditing,
+                isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             // Age
-            if (isEditing) {
+            if (uiState.isEditing) {
                 BirthdayInput(
                     birthday = birthday,
                     onBirthdayChange = {birthday = it},
-                    isEditing = isEditing,
+                    isEditing = true,
                     modifier = Modifier.fillMaxWidth(textBoxWidth)
                 )
             } else {
@@ -125,7 +123,7 @@ fun ProfileScreen() {
                     value = age,
                     onValueChange = { age = it },
                     label = { Text("Age") },
-                    isEditing = isEditing,
+                    isEditing = false,
                     modifier = Modifier.fillMaxWidth(textBoxWidth)
                 )
             }
@@ -134,10 +132,10 @@ fun ProfileScreen() {
 
             // Home Town
             TextBoxForProfile(
-                value = hometown,
-                onValueChange = { hometown = it },
+                value = uiState.hometown,
+                onValueChange = { viewModel.updateHometown(it) },
                 label = { Text("Hometown") },
-                isEditing = isEditing,
+                isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
 
@@ -147,7 +145,7 @@ fun ProfileScreen() {
                 value = location,
                 onValueChange = {location = it},
                 label = { Text("Current Location") },
-                isEditing = isEditing,
+                isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
 
@@ -164,7 +162,7 @@ fun ProfileScreen() {
                 onTagRemove = { tag ->
                     selectedTags = selectedTags.filter { it != tag }
                 },
-                isEditing = isEditing,
+                isEditing = uiState.isEditing,
                 modifier = Modifier
                     //.align(Alignment.CenterHorizontally)
                     .fillMaxWidth(textBoxWidth)
@@ -173,10 +171,10 @@ fun ProfileScreen() {
             Spacer(modifier = Modifier.height(8.dp))
 
             MultiLineTextBoxForProfile(
-                value = bio,
-                onValueChange = {bio = it},
+                value = uiState.bio,
+                onValueChange = { viewModel.updateBio(it) },
                 label = { Text("About Me") },
-                isEditing = isEditing,
+                isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
         }
@@ -192,11 +190,11 @@ fun ProfileScreen() {
                 modifier = Modifier
                     .padding(16.dp)
                     .size(56.dp),
-                onClick = { isEditing = !isEditing }
+                onClick = { viewModel.toggleEditMode() }
             ) {
                 Icon(
-                    imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
-                    contentDescription = if (isEditing) "Save Profile" else "Edit Profile"
+                    imageVector = if (uiState.isEditing) Icons.Default.Check else Icons.Default.Edit,
+                    contentDescription = if (uiState.isEditing) "Save Profile" else "Edit Profile"
                 )
             }
         }
@@ -288,7 +286,7 @@ fun TagDropdownMenu(
                     value = "Select Tags",
                     onValueChange = {},
                     readOnly = true,
-                    enabled = isEditing,
+                    enabled = true,
                     label = { Text("Tags") },
                     trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
