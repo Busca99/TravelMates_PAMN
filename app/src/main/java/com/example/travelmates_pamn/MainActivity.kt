@@ -218,25 +218,51 @@ private fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
 fun PeopleInTownScreen() {
     var users by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-
-    // Posizione di test (Valencia)
-    val currentLocation = GeoPoint(39.4699, -0.3763)
-
-    // ID dell'utente corrente (per ora hardcoded, poi lo prenderemo dall'auth)
+    var currentLocation by remember { mutableStateOf<GeoPoint?>(null) }
+    //PER ORA E' HARDCODED
     val currentUserId = "user1"
 
     LaunchedEffect(Unit) {
         val db = FirebaseFirestore.getInstance()
         try {
-            val snapshot = db.collection("users").get().await()
-            users = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(User::class.java)
-            }.filter { user ->
-                calculateDistance(currentLocation, user.location) <= 30.0
-            }.sortedBy { user ->
-                calculateDistance(currentLocation, user.location)
+            Log.d("PeopleInTown", "Iniziando recupero posizione utente corrente...")
+
+            // Cerca l'utente corrente
+            val userQuery = db.collectionGroup("users")
+                .whereEqualTo("id", currentUserId)
+                .get()
+                .await()
+
+            Log.d("PeopleInTown", "Query utente corrente eseguita")
+
+            if (!userQuery.isEmpty) {
+                val currentUser = userQuery.documents[0].toObject(User::class.java)
+                currentLocation = currentUser?.location
+                Log.d("PeopleInTown", "Location trovata: ${currentLocation?.latitude}, ${currentLocation?.longitude}")
+
+                if (currentLocation != null) {
+                    // Cerca gli altri utenti
+                    val allUsersQuery = db.collectionGroup("users")
+                        .whereNotEqualTo("id", currentUserId)
+                        .get()
+                        .await()
+
+                    users = allUsersQuery.documents
+                        .mapNotNull { it.toObject(User::class.java) }
+                        .filter { user ->
+                            calculateDistance(currentLocation!!, user.location) <= 30.0
+                        }
+                        .sortedBy { user ->
+                            calculateDistance(currentLocation!!, user.location)
+                        }
+
+                    Log.d("PeopleInTown", "Trovati ${users.size} utenti nelle vicinanze")
+                }
+            } else {
+                Log.e("PeopleInTown", "Utente corrente non trovato")
             }
         } catch (e: Exception) {
+            Log.e("PeopleInTown", "Errore generale: ${e.message}")
             e.printStackTrace()
         } finally {
             isLoading = false
@@ -246,6 +272,12 @@ fun PeopleInTownScreen() {
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
+        }
+    } else if (currentLocation == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Could not get your location")
+            }
         }
     } else {
         LazyColumn(
@@ -283,7 +315,7 @@ fun PeopleInTownScreen() {
                             color = Color.Gray
                         )
                         Text(
-                            text = "Distance: ${calculateDistance(currentLocation, user.location).toInt()} km",
+                            text = "Distance: ${calculateDistance(currentLocation!!, user.location).toInt()} km",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
