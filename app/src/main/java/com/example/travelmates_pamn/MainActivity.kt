@@ -2,6 +2,7 @@ package com.example.travelmates_pamn
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -69,26 +70,18 @@ class MainActivity : ComponentActivity() {
         // Inizializza il client della posizione
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        // Inizializza Firebase Auth
+        // Verifica se l'utente è autenticato
         val auth = FirebaseAuth.getInstance()
-
-        // Esegui login anonimo se l'utente non è già loggato
         if (auth.currentUser == null) {
-            auth.signInAnonymously()
-                .addOnCompleteListener(this) { task ->
-                    if (task.isSuccessful) {
-                        // Login riuscito, richiedi i permessi di posizione
-                        requestLocationPermissions()
-                        startApp()
-                    } else {
-                        Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-        } else {
-            // Utente già loggato, richiedi i permessi di posizione
-            requestLocationPermissions()
-            startApp()
+            // Se non è autenticato, vai alla schermata di login
+            startActivity(Intent(this, AuthActivity::class.java))
+            finish()
+            return
         }
+
+        // Se l'utente è autenticato, richiedi i permessi di posizione
+        requestLocationPermissions()
+        startApp()
     }
 
     private fun requestLocationPermissions() {
@@ -102,13 +95,14 @@ class MainActivity : ComponentActivity() {
     private fun updateUserLocation() {
         Log.d("Location", "Iniziando aggiornamento posizione...")
 
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { location ->
                 if (location != null) {
                     Log.d("Location", "Posizione ottenuta: ${location.latitude}, ${location.longitude}")
 
                     val db = FirebaseFirestore.getInstance()
-                    val currentUserId = "user1"
                     val geoPoint = GeoPoint(location.latitude, location.longitude)
 
                     Log.d("Location", "Aggiornamento database per utente: $currentUserId")
@@ -134,26 +128,7 @@ class MainActivity : ComponentActivity() {
                                     }
                             } else {
                                 // Documento non trovato, crealo
-                                Log.d("Location", "Documento non trovato, creazione nuovo utente")
-                                val newUser = hashMapOf(
-                                    "id" to currentUserId,
-                                    "name" to "User 1",
-                                    "age" to 25,
-                                    "hometown" to "Unknown",
-                                    "currentCity" to "Unknown",
-                                    "location" to geoPoint
-                                )
-
-                                db.collection("users")
-                                    .add(newUser)
-                                    .addOnSuccessListener {
-                                        Log.d("Location", "Nuovo utente creato con successo")
-                                        Toast.makeText(this, "New user created with location", Toast.LENGTH_SHORT).show()
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.e("Location", "Errore nella creazione utente: ${e.message}")
-                                        Toast.makeText(this, "Error creating user", Toast.LENGTH_SHORT).show()
-                                    }
+                                Log.d("Location", "Utente non presente.")
                             }
                         }
                         .addOnFailureListener { e ->
@@ -219,8 +194,7 @@ fun PeopleInTownScreen() {
     var users by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var currentLocation by remember { mutableStateOf<GeoPoint?>(null) }
-    //PER ORA E' HARDCODED
-    val currentUserId = "user1"
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
     LaunchedEffect(Unit) {
         val db = FirebaseFirestore.getInstance()
@@ -335,7 +309,7 @@ fun FriendsScreen() {
     var isLoading by remember { mutableStateOf(true) }
 
     // ID dell'utente corrente (per ora hardcoded, poi lo prenderemo dall'auth)
-    val currentUserId = "user1"
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
     LaunchedEffect(Unit) {
         val db = FirebaseFirestore.getInstance()
@@ -422,7 +396,7 @@ fun FriendsScreen() {
 fun IncomingRequestsScreen() {
     var incomingRequests by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    val currentUserId = "user1"
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
     // Funzione per ricaricare le richieste
     val loadRequests = suspend {
