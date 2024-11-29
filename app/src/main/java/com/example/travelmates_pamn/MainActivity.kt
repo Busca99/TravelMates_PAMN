@@ -44,6 +44,9 @@ import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.*
+import android.app.Activity
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 
 
 class MainActivity : ComponentActivity() {
@@ -559,50 +562,79 @@ fun MainApp() {
     val scope = rememberCoroutineScope()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val context = LocalContext.current
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                Text("Menu", modifier = Modifier.padding(16.dp))
-                HorizontalDivider()
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Text("Menu", modifier = Modifier.padding(bottom = 16.dp))
+                        HorizontalDivider()
 
-                // Navigation drawer items
-                NavigationDrawerItem(
-                    label = { Text(text = "Home") },
-                    selected = currentRoute == Screen.Home.route,
-                    onClick = {
-                        navigateToScreen(navController, Screen.Home.route, drawerState, scope)
+                        // Navigation drawer items
+                        NavigationDrawerItem(
+                            label = { Text(text = "Home") },
+                            selected = currentRoute == Screen.Home.route,
+                            onClick = {
+                                navigateToScreen(navController, Screen.Home.route, drawerState, scope)
+                            }
+                        )
+                        NavigationDrawerItem(
+                            label = { Text(text = "View People in Town") },
+                            selected = currentRoute == Screen.PeopleInTown.route,
+                            onClick = {
+                                navigateToScreen(navController, Screen.PeopleInTown.route, drawerState, scope)
+                            }
+                        )
+                        NavigationDrawerItem(
+                            label = { Text(text = "My Profile") },
+                            selected = currentRoute == Screen.MyProfile.route,
+                            onClick = {
+                                navigateToScreen(navController, Screen.MyProfile.route, drawerState, scope)
+                            }
+                        )
+                        NavigationDrawerItem(
+                            label = { Text(text = "Friends") },
+                            selected = currentRoute == Screen.Friends.route,
+                            onClick = {
+                                navigateToScreen(navController, Screen.Friends.route, drawerState, scope)
+                            }
+                        )
+                        NavigationDrawerItem(
+                            label = { Text(text = "Incoming Requests") },
+                            selected = currentRoute == Screen.IncomingRequests.route,
+                            onClick = {
+                                navigateToScreen(navController, Screen.IncomingRequests.route, drawerState, scope)
+                            }
+                        )
                     }
-                )
-                NavigationDrawerItem(
-                    label = { Text(text = "View People in Town") },
-                    selected = currentRoute == Screen.PeopleInTown.route,
-                    onClick = {
-                        navigateToScreen(navController, Screen.PeopleInTown.route, drawerState, scope)
+
+                    // Logout button at the bottom
+                    Button(
+                        onClick = {
+                            FirebaseAuth.getInstance().signOut()
+                            scope.launch {
+                                drawerState.close()
+                            }
+                            context.startActivity(Intent(context, AuthActivity::class.java))
+                            (context as? Activity)?.finish()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                    ) {
+                        Text("Logout")
                     }
-                )
-                NavigationDrawerItem(
-                    label = { Text(text = "My Profile") },
-                    selected = currentRoute == Screen.MyProfile.route,
-                    onClick = {
-                        navigateToScreen(navController, Screen.MyProfile.route, drawerState, scope)
-                    }
-                )
-                NavigationDrawerItem(
-                    label = { Text(text = "Friends") },
-                    selected = currentRoute == Screen.Friends.route,
-                    onClick = {
-                        navigateToScreen(navController, Screen.Friends.route, drawerState, scope)
-                    }
-                )
-                NavigationDrawerItem(
-                    label = { Text(text = "Incoming Requests") },
-                    selected = currentRoute == Screen.IncomingRequests.route,
-                    onClick = {
-                        navigateToScreen(navController, Screen.IncomingRequests.route, drawerState, scope)
-                    }
-                )
+                }
             }
         }
     ) {
