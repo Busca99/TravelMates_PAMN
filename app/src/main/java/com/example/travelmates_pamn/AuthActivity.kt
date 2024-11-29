@@ -72,9 +72,11 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
     var isLogin by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
     var hometown by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -125,6 +127,16 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
+                value = phoneNumber,
+                onValueChange = { phoneNumber = it },
+                label = { Text("Phone number") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Name") },
@@ -152,6 +164,16 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = bio,
+                onValueChange = { bio = it },
+                label = { Text("Write something about yourself") },
+                singleLine = false,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -164,7 +186,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                         return@Button
                     }
                 } else {
-                    if (email.isEmpty() || password.isEmpty() || name.isEmpty() ||
+                    if (email.isEmpty() || password.isEmpty() || phoneNumber.isEmpty() || name.isEmpty() ||
                         birthDate.isEmpty() || hometown.isEmpty()) {
                         errorMessage = "Please fill all fields"
                         return@Button
@@ -207,11 +229,13 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                 val newUser = hashMapOf(
                                     "id" to userId,
                                     "name" to name,
+                                    "phoneNumber" to phoneNumber,
                                     "age" to age,
                                     "hometown" to hometown,
                                     "bio" to "",
                                     "photoUrl" to "",
-                                    "location" to GeoPoint(0.0, 0.0)
+                                    "location" to GeoPoint(0.0, 0.0),
+                                    "bio" to bio
                                 )
 
                                 db.collection("users")

@@ -6,9 +6,10 @@ _Current location update is happening only in the moment when app is opened. If 
 _Sometimes you need to wait some seconds for the location to be updated correctly;
 
 To do:
-_Aggiungi più info nella pagina di registrazione;
 _Crea pagine con messaggio nel caso siano vuote;
-_Crea bottone logout;
 _Gestione di photoUrl;
+_Gestione dei tag (interessi) per ogni utente (aggiungerli nella registrazione);
+_Gestione errore nella compilazione dei dati in registrazione;
+_Rendere scorrevole la pagina Register;
 
 _Possibilità di inviare richiesta di amicizia dalla pagina profilo di utente;
