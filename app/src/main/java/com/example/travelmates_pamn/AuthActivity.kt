@@ -69,6 +69,73 @@ class AuthActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun InterestSelectionSection(
+    selectedInterests: List<String>,
+    onInterestsChange: (List<String>) -> Unit
+) {
+    val availableInterests = listOf(
+        "Partying",
+        "Hiking",
+        "Beach",
+        "Museums",
+        "Food",
+        "Shopping",
+        "Photography",
+        "Adventure",
+        "History",
+        "Nature",
+        "Art",
+        "Local Culture",
+        "Bicycle",
+        "Aperitif",
+        "Sport",
+        "Mountain",
+        "Live music",
+        "Surf",
+        "Van life"
+    )
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Select your interests (max 5)",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+
+        if (selectedInterests.size >= 5) {
+            Text(
+                text = "Maximum interests selected",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            maxItemsInEachRow = 3
+        ) {
+            availableInterests.forEach { interest ->
+                val isSelected = selectedInterests.contains(interest)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        if (isSelected) {
+                            onInterestsChange(selectedInterests - interest)
+                        } else if (selectedInterests.size < 5) {
+                            onInterestsChange(selectedInterests + interest)
+                        }
+                    },
+                    label = { Text(interest) },
+                    modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun AuthScreen(onLoginSuccess: () -> Unit) {
     var isLogin by remember { mutableStateOf(true) }
@@ -79,6 +146,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
     var birthDate by remember { mutableStateOf("") }
     var hometown by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
+    var selectedInterests by remember { mutableStateOf(listOf<String>()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -170,6 +238,13 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            InterestSelectionSection(
+                selectedInterests = selectedInterests,
+                onInterestsChange = { selectedInterests = it }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = bio,
                 onValueChange = { bio = it },
@@ -238,7 +313,8 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                     "bio" to "",
                                     "photoUrl" to "",
                                     "location" to GeoPoint(0.0, 0.0),
-                                    "bio" to bio
+                                    "bio" to bio,
+                                    "interests" to selectedInterests
                                 )
 
                                 db.collection("users")
