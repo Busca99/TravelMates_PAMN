@@ -256,6 +256,10 @@ fun PeopleInTownScreen() {
                 Text("Could not get your location")
             }
         }
+    } else if (users.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("There's nobody in your area ):")
+        }
     } else {
         LazyColumn(
             modifier = Modifier
@@ -350,6 +354,10 @@ fun FriendsScreen() {
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
+        }
+    } else if (friends.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("You still don't have friends!")
         }
     } else {
         LazyColumn(

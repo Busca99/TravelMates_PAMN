@@ -6,7 +6,6 @@ _Current location update is happening only in the moment when app is opened. If 
 _Sometimes you need to wait some seconds for the location to be updated correctly;
 
 To do:
-_Crea pagine con messaggio nel caso siano vuote;
 _Gestione di photoUrl;
 _Gestione errore nella compilazione dei dati in registrazione;
 
