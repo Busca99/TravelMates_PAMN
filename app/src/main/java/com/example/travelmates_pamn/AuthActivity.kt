@@ -199,7 +199,9 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
 
             OutlinedTextField(
                 value = phoneNumber,
-                onValueChange = { phoneNumber = it },
+                onValueChange = {
+                    if (it.length <= 13) phoneNumber = it
+                },
                 label = { Text("Phone number") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -209,7 +211,9 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
 
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = {
+                    if (it.length <= 50) name = it
+                },
                 label = { Text("Name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -230,7 +234,9 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
 
             OutlinedTextField(
                 value = hometown,
-                onValueChange = { hometown = it },
+                onValueChange = {
+                    if (it.length <= 50) hometown = it
+                },
                 label = { Text("Hometown") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -247,8 +253,11 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
 
             OutlinedTextField(
                 value = bio,
-                onValueChange = { bio = it },
+                onValueChange = {
+                    if (it.length <= 700) bio = it
+                },
                 label = { Text("Write something about yourself") },
+                supportingText = { Text("${bio.length}/700") },
                 singleLine = false,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -264,10 +273,29 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                         return@Button
                     }
                 } else {
-                    if (email.isEmpty() || password.isEmpty() || phoneNumber.isEmpty() || name.isEmpty() ||
-                        birthDate.isEmpty() || hometown.isEmpty()) {
-                        errorMessage = "Please fill all fields"
-                        return@Button
+                    // Controlli sui campi durante la registrazione
+                    when {
+                        email.isEmpty() || password.isEmpty() || phoneNumber.isEmpty() ||
+                                name.isEmpty() || birthDate.isEmpty() || hometown.isEmpty() -> {
+                            errorMessage = "Please fill all fields"
+                            return@Button
+                        }
+                        phoneNumber.length > 13 -> {
+                            errorMessage = "Phone number must be max 13 characters"
+                            return@Button
+                        }
+                        name.length > 50 -> {
+                            errorMessage = "Name must be max 50 characters"
+                            return@Button
+                        }
+                        hometown.length > 50 -> {
+                            errorMessage = "Hometown must be max 50 characters"
+                            return@Button
+                        }
+                        bio.length > 700 -> {
+                            errorMessage = "Bio must be max 700 characters"
+                            return@Button
+                        }
                     }
                 }
 
