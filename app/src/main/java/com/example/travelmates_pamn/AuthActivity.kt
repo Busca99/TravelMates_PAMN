@@ -21,6 +21,18 @@ import com.example.travelmates_pamn.ui.theme.TravelMates_PAMNTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import com.google.firebase.storage.FirebaseStorage
 
 class AuthActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -66,6 +78,52 @@ class AuthActivity : ComponentActivity() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         })
         finish()
+    }
+}
+
+@Composable
+fun ImagePicker(
+    imageUri: Uri?,
+    onImageSelected: (Uri) -> Unit
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { onImageSelected(it) }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (imageUri != null) {
+            AsyncImage(
+                model = imageUri,
+                contentDescription = "Profile picture",
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { launcher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add photo"
+                )
+            }
+        }
+
+        TextButton(onClick = { launcher.launch("image/*") }) {
+            Text(if (imageUri == null) "Select profile picture" else "Change picture")
+        }
     }
 }
 
@@ -146,9 +204,44 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
     var birthDate by remember { mutableStateOf("") }
     var hometown by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var selectedInterests by remember { mutableStateOf(listOf<String>()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Funzione per caricare l'immagine
+    fun uploadImage(uri: Uri, userId: String, onComplete: (String?) -> Unit) {
+        Log.d("ImageUpload", "Starting image upload for user: $userId")
+        Log.d("ImageUpload", "Image URI: $uri")
+
+        val storage = FirebaseStorage.getInstance()
+        val storageRef = storage.reference
+        val imageRef = storageRef.child("profile_pictures/$userId.jpg")
+
+        imageRef.putFile(uri)
+            .addOnProgressListener { taskSnapshot ->
+                val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount)
+                Log.d("ImageUpload", "Upload progress: $progress%")
+            }
+            .addOnSuccessListener {
+                Log.d("ImageUpload", "File uploaded successfully to path: ${imageRef.path}")
+
+                // Ottieni l'URL direttamente dopo l'upload riuscito
+                imageRef.downloadUrl
+                    .addOnSuccessListener { downloadUrl ->
+                        Log.d("ImageUpload", "Got download URL: $downloadUrl")
+                        onComplete(downloadUrl.toString())
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("ImageUpload", "Failed to get download URL: ${e.message}")
+                        onComplete(null)
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.e("ImageUpload", "Error uploading file: ${e.message}")
+                onComplete(null)
+            }
+    }
 
     Column(
         modifier = Modifier
@@ -217,6 +310,13 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                 label = { Text("Name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ImagePicker(
+                imageUri = selectedImageUri,
+                onImageSelected = { selectedImageUri = it }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -315,7 +415,6 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                             }
                         }
                 } else {
-                    // Registrazione con dati aggiuntivi
                     auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
@@ -332,29 +431,60 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                     0
                                 }
 
-                                val newUser = hashMapOf(
-                                    "id" to userId,
-                                    "name" to name,
-                                    "phoneNumber" to phoneNumber,
-                                    "age" to age,
-                                    "hometown" to hometown,
-                                    "bio" to "",
-                                    "photoUrl" to "",
-                                    "location" to GeoPoint(0.0, 0.0),
-                                    "bio" to bio,
-                                    "interests" to selectedInterests
-                                )
+                                if (selectedImageUri != null && userId != null) {
+                                    Log.d("Registration", "Starting image upload...")
+                                    uploadImage(selectedImageUri!!, userId) { photoUrl ->
+                                        Log.d("Registration", "Got photo URL: $photoUrl")
+                                        val newUser = hashMapOf(
+                                            "id" to userId,
+                                            "name" to name,
+                                            "phoneNumber" to phoneNumber,
+                                            "age" to age,
+                                            "hometown" to hometown,
+                                            "bio" to bio,
+                                            "photoUrl" to (photoUrl ?: ""),
+                                            "location" to GeoPoint(0.0, 0.0),
+                                            "interests" to selectedInterests
+                                        )
 
-                                db.collection("users")
-                                    .add(newUser)
-                                    .addOnSuccessListener {
-                                        isLoading = false
-                                        onLoginSuccess()
+                                        db.collection("users")
+                                            .add(newUser)
+                                            .addOnSuccessListener {
+                                                Log.d("Registration", "User created with photo URL: $photoUrl")
+                                                isLoading = false
+                                                onLoginSuccess()
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("Registration", "Failed to create user: ${e.message}")
+                                                isLoading = false
+                                                errorMessage = "Registration successful but failed to create profile"
+                                            }
                                     }
-                                    .addOnFailureListener { e ->
-                                        isLoading = false
-                                        errorMessage = "Registration successful but failed to create profile"
-                                    }
+                                } else {
+                                    Log.d("Registration", "No image selected, creating user without photo")
+                                    val newUser = hashMapOf(
+                                        "id" to userId,
+                                        "name" to name,
+                                        "phoneNumber" to phoneNumber,
+                                        "age" to age,
+                                        "hometown" to hometown,
+                                        "bio" to bio,
+                                        "photoUrl" to "",
+                                        "location" to GeoPoint(0.0, 0.0),
+                                        "interests" to selectedInterests
+                                    )
+
+                                    db.collection("users")
+                                        .add(newUser)
+                                        .addOnSuccessListener {
+                                            isLoading = false
+                                            onLoginSuccess()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            isLoading = false
+                                            errorMessage = "Registration successful but failed to create profile"
+                                        }
+                                }
                             } else {
                                 isLoading = false
                                 errorMessage = when {
