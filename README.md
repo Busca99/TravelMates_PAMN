@@ -8,13 +8,13 @@ _"currentLocation" variable deleted because "location" variable makes it useless
  and is not modified by the user);
 _In the homepage we could just show user position in a map without the necessity to have the exact city written somewhere;
 _We have to write the presentation document for the app;
-_I created some test users (u can see them in firestore):
-    -Nicolò, location:
-    -Yannick, location:
-    -Ludovica, location:
-    -Katja, location:
-    -Alexandra, location:
-    -Agata, location:
+_I created some test users (u can see them in firestore + the password of each user is name of the user repeated 2 times):
+    -Nicolò, location: Valencia
+    -Yannick, location: Amsterdam
+    -Ludovica, location: London
+    -Katja, location: Valencia
+    -Alexandra, location: Amsterdam
+    -Agata, location: Valencia
 
 To do:
 _Gestione di photoUrl:
