@@ -214,33 +214,36 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
         Log.d("ImageUpload", "Starting image upload for user: $userId")
         Log.d("ImageUpload", "Image URI: $uri")
 
-        val storage = FirebaseStorage.getInstance()
-        val storageRef = storage.reference
-        val imageRef = storageRef.child("profile_pictures/$userId.jpg")
+        try {
+            val storage = FirebaseStorage.getInstance()
+            val storageRef = storage.reference
+            val imageRef = storageRef.child("profile_pictures/$userId.jpg")
 
-        imageRef.putFile(uri)
-            .addOnProgressListener { taskSnapshot ->
-                val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount)
-                Log.d("ImageUpload", "Upload progress: $progress%")
-            }
-            .addOnSuccessListener {
-                Log.d("ImageUpload", "File uploaded successfully to path: ${imageRef.path}")
-
-                // Ottieni l'URL direttamente dopo l'upload riuscito
-                imageRef.downloadUrl
-                    .addOnSuccessListener { downloadUrl ->
-                        Log.d("ImageUpload", "Got download URL: $downloadUrl")
-                        onComplete(downloadUrl.toString())
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("ImageUpload", "Failed to get download URL: ${e.message}")
-                        onComplete(null)
-                    }
-            }
-            .addOnFailureListener { e ->
-                Log.e("ImageUpload", "Error uploading file: ${e.message}")
-                onComplete(null)
-            }
+            imageRef.putFile(uri)
+                .addOnProgressListener { taskSnapshot ->
+                    val progress = (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount)
+                    Log.d("ImageUpload", "Upload is $progress% done")
+                }
+                .addOnFailureListener { exception ->
+                    Log.e("ImageUpload", "Upload failed: ${exception.message}")
+                    onComplete(null)
+                }
+                .addOnSuccessListener {
+                    Log.d("ImageUpload", "Upload successful")
+                    imageRef.downloadUrl
+                        .addOnSuccessListener { downloadUrl ->
+                            Log.d("ImageUpload", "Download URL: $downloadUrl")
+                            onComplete(downloadUrl.toString())
+                        }
+                        .addOnFailureListener { urlException ->
+                            Log.e("ImageUpload", "Failed to get URL: ${urlException.message}")
+                            onComplete(null)
+                        }
+                }
+        } catch (e: Exception) {
+            Log.e("ImageUpload", "Error in uploadImage: ${e.message}")
+            onComplete(null)
+        }
     }
 
     Column(
@@ -404,7 +407,6 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
 
                 val auth = FirebaseAuth.getInstance()
                 if (isLogin) {
-                    // Login code rimane invariato
                     auth.signInWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             isLoading = false
@@ -431,37 +433,8 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                     0
                                 }
 
-                                if (selectedImageUri != null && userId != null) {
-                                    Log.d("Registration", "Starting image upload...")
-                                    uploadImage(selectedImageUri!!, userId) { photoUrl ->
-                                        Log.d("Registration", "Got photo URL: $photoUrl")
-                                        val newUser = hashMapOf(
-                                            "id" to userId,
-                                            "name" to name,
-                                            "phoneNumber" to phoneNumber,
-                                            "age" to age,
-                                            "hometown" to hometown,
-                                            "bio" to bio,
-                                            "photoUrl" to (photoUrl ?: ""),
-                                            "location" to GeoPoint(0.0, 0.0),
-                                            "interests" to selectedInterests
-                                        )
-
-                                        db.collection("users")
-                                            .add(newUser)
-                                            .addOnSuccessListener {
-                                                Log.d("Registration", "User created with photo URL: $photoUrl")
-                                                isLoading = false
-                                                onLoginSuccess()
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Log.e("Registration", "Failed to create user: ${e.message}")
-                                                isLoading = false
-                                                errorMessage = "Registration successful but failed to create profile"
-                                            }
-                                    }
-                                } else {
-                                    Log.d("Registration", "No image selected, creating user without photo")
+                                // Funzione per creare l'utente nel database
+                                fun createUser(photoUrl: String = "") {
                                     val newUser = hashMapOf(
                                         "id" to userId,
                                         "name" to name,
@@ -469,7 +442,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                         "age" to age,
                                         "hometown" to hometown,
                                         "bio" to bio,
-                                        "photoUrl" to "",
+                                        "photoUrl" to photoUrl,
                                         "location" to GeoPoint(0.0, 0.0),
                                         "interests" to selectedInterests
                                     )
@@ -477,13 +450,29 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                     db.collection("users")
                                         .add(newUser)
                                         .addOnSuccessListener {
+                                            Log.d("Registration", "User created successfully")
                                             isLoading = false
                                             onLoginSuccess()
                                         }
                                         .addOnFailureListener { e ->
+                                            Log.e("Registration", "Failed to create user: ${e.message}")
                                             isLoading = false
                                             errorMessage = "Registration successful but failed to create profile"
                                         }
+                                }
+
+                                // Se c'è un'immagine, caricala prima di creare l'utente
+                                if (selectedImageUri != null && userId != null) {
+                                    uploadImage(selectedImageUri!!, userId) { photoUrl ->
+                                        if (photoUrl != null) {
+                                            createUser(photoUrl)
+                                        } else {
+                                            Log.e("Registration", "Failed to upload image, creating user without photo")
+                                            createUser()
+                                        }
+                                    }
+                                } else {
+                                    createUser()
                                 }
                             } else {
                                 isLoading = false
