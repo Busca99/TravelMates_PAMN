@@ -57,7 +57,7 @@ class ProfileViewModel : ViewModel() {
                 // Add more detailed logging for each field
                 Log.d("ProfileViewModel", "Birthday: ${userData["birthday"]}")
                 Log.d("ProfileViewModel", "Location: ${userData["location"]}")
-                Log.d("ProfileViewModel", "Tags: ${userData["tags"]}")
+                Log.d("ProfileViewModel", "Tags: ${userData["interests"]}")
 
                 _uiState.update {
                     it.copy(
@@ -66,12 +66,12 @@ class ProfileViewModel : ViewModel() {
                         hometown = userData["hometown"] as? String ?: "",
                         location = userData["location"] as? String ?: "",
                         bio = userData["bio"] as? String ?: "",
-                        selectedTags = when (val tags = userData["tags"]) {
+                        selectedTags = when (val tags = userData["interests"]) {
                             is List<*> -> tags.filterIsInstance<String>()
                             else -> emptyList()
                         },
                         photoUrl = currentUser.photoUrl?.toString() ?: "",
-                        age = userData["birthday"] as? String ?: ""
+                        age = userData["age"] as? String ?: ""
                     )
                 }
             }
@@ -106,7 +106,7 @@ class ProfileViewModel : ViewModel() {
         hometown?.let { updateData["hometown"] = it }
         location?.let { updateData["location"] = it }
         bio?.let { updateData["bio"] = it }
-        tags?.let { updateData["tags"] = it }
+        tags?.let { updateData["interests"] = it }
         birthday?.let { updateData["birthday"] = it }
 
         if (updateData.isNotEmpty()) {

@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -60,15 +61,12 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // get birthday
-    val allTags = listOf("Travel", "Food", "Technology", "Sports", "Music")
+    val allTags = LocalContext.current.resources.getStringArray(R.array.available_interests).toList()
     
-    var age by remember { mutableStateOf("date") }
+    var age by remember { mutableStateOf(uiState.age) }
     var location by remember { mutableStateOf(uiState.location) }
     var selectedTags by remember { mutableStateOf(uiState.selectedTags) }
-    var birthday by remember { mutableStateOf(uiState.age) }
-
-
+    var birthday by remember { mutableStateOf(uiState.birthday) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -112,7 +110,7 @@ fun ProfileScreen(
             // Age
             if (uiState.isEditing) {
                 BirthdayInput(
-                    birthday = birthday,
+                    birthday = uiState.birthday,
                     onBirthdayChange = {birthday = it},
                     isEditing = true,
                     modifier = Modifier.fillMaxWidth(textBoxWidth)
@@ -141,7 +139,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             TextBoxForProfile(
-                value = location,
+                value = uiState.location,
                 onValueChange = {location = it},
                 label = { Text("Current Location") },
                 isEditing = uiState.isEditing,
@@ -152,7 +150,7 @@ fun ProfileScreen(
 
             TagDropdownMenu(
                 availableTags = allTags,
-                selectedTags = selectedTags,
+                selectedTags = uiState.selectedTags,
                 onTagSelect = { tag ->
                     if (tag !in selectedTags) {
                         selectedTags = selectedTags + tag
