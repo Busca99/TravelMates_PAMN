@@ -33,6 +33,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import com.google.firebase.storage.FirebaseStorage
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+
 
 class AuthActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -133,27 +136,8 @@ fun InterestSelectionSection(
     selectedInterests: List<String>,
     onInterestsChange: (List<String>) -> Unit
 ) {
-    val availableInterests = listOf(
-        "Partying",
-        "Hiking",
-        "Beach",
-        "Museums",
-        "Food",
-        "Shopping",
-        "Photography",
-        "Adventure",
-        "History",
-        "Nature",
-        "Art",
-        "Local Culture",
-        "Bicycle",
-        "Aperitif",
-        "Sport",
-        "Mountain",
-        "Live music",
-        "Surf",
-        "Van life"
-    )
+    val context = LocalContext.current
+    val availableInterests = context.resources.getStringArray(R.array.available_interests).toList()
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(

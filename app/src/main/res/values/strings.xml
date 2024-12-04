@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">TravelMates</string>
+    <string-array name="available_interests">
+        <item>Partying</item>
+        <item>Hiking</item>
+        <item>Beach</item>
+        <item>Museums</item>
+        <item>Food</item>
+        <item>Shopping</item>
+        <item>Photography</item>
+        <item>Adventure</item>
+        <item>History</item>
+        <item>Nature</item>
+        <item>Art</item>
+        <item>Local Culture</item>
+        <item>Bicycle</item>
+        <item>Aperitif</item>
+        <item>Sport</item>
+        <item>Mountain</item>
+        <item>Live music</item>
+        <item>Surf</item>
+        <item>Van life</item>
+    </string-array>
+
 </resources>
