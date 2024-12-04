@@ -16,7 +16,4 @@ _I created some test users (u can see them in firestore + the password of each u
     -Alexandra, location: Amsterdam
     -Agata, location: Valencia
     -Ricardo, location: Gran Canaria
-
-To do:
-_Gestione di photoUrl:
-    -nelle liste di utenti devono comparire le foto profilo;
+_PEOPLEINTOWN IS NOT SHOWING ANYTHING?

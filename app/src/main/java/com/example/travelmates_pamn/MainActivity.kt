@@ -48,7 +48,10 @@ import kotlinx.coroutines.tasks.await
 import kotlin.math.*
 import android.app.Activity
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 
 class MainActivity : ComponentActivity() {
@@ -281,11 +284,29 @@ fun PeopleInTownScreen(navController: NavController) {
                             navController.navigate(Screen.OtherProfile.createRoute(user.id))
                         }
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .background(color = Color.Green, shape = CircleShape)
-                    )
+                    if (user.photoUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = user.photoUrl,
+                            contentDescription = "Profile picture of ${user.name}",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = user.name.firstOrNull()?.toString() ?: "",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.width(16.dp))
 
@@ -320,7 +341,6 @@ fun FriendsScreen() {
     var friends by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // ID dell'utente corrente (per ora hardcoded, poi lo prenderemo dall'auth)
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
     LaunchedEffect(Unit) {
@@ -380,12 +400,30 @@ fun FriendsScreen() {
                             // Azione quando la riga è cliccata
                         }
                 ) {
-                    // Cerchio verde (placeholder per la foto profilo)
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .background(color = Color.Green, shape = CircleShape)
-                    )
+                    if (friend.photoUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = friend.photoUrl,
+                            contentDescription = "Profile picture of ${friend.name}",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Fallback se non c'è foto profilo
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = friend.name.firstOrNull()?.toString() ?: "",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.width(16.dp))
 
@@ -515,11 +553,29 @@ fun IncomingRequestsScreen() {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .background(color = Color.Green, shape = CircleShape)
-                        )
+                        if (sender.photoUrl.isNotEmpty()) {
+                            AsyncImage(
+                                model = sender.photoUrl,
+                                contentDescription = "Profile picture of ${sender.name}",
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = sender.name.firstOrNull()?.toString() ?: "",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = MaterialTheme.typography.headlineSmall
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.width(16.dp))
 
