@@ -1,11 +1,13 @@
 package com.example.travelmates_pamn.ui
 
 data class ProfileUiState(
+    val uid: String = "",
     val name: String = "John Doe",
     val age: String = "",
     val hometown: String = "Paris, France",
     val location: String = "",
     val bio: String = "I like travelling!",
+    val photoUrl: String = "",
     val selectedTags: List<String> = emptyList(),
     val isEditing: Boolean = false
 )

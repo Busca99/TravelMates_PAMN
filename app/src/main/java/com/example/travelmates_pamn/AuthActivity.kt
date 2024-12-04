@@ -44,8 +44,8 @@ class AuthActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
 
         // Forza il logout di qualsiasi utente -- DA CAMBIARE
-        auth.signOut()
-        Log.d("AuthActivity", "Forced logout")
+//        auth.signOut()
+//        Log.d("AuthActivity", "Forced logout")
 
         if (auth.currentUser != null) {
             Log.d("AuthActivity", "User logged in: ${auth.currentUser}")
@@ -448,7 +448,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                     )
 
                                     db.collection("users")
-                                        .add(newUser)
+                                        .document(userId!!).set(newUser)
                                         .addOnSuccessListener {
                                             Log.d("Registration", "User created successfully")
                                             isLoading = false

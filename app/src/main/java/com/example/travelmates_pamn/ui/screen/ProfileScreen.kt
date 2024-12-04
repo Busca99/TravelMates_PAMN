@@ -60,14 +60,13 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // ToDo: add exchange with login
     // get birthday
     val allTags = listOf("Travel", "Food", "Technology", "Sports", "Music")
     
     var age by remember { mutableStateOf("date") }
-    var location by remember { mutableStateOf("Las Palmas, Spain") }
-    var selectedTags by remember { mutableStateOf(listOf<String>()) }
-    var birthday by remember { mutableStateOf("2001-01-01") }
+    var location by remember { mutableStateOf(uiState.location) }
+    var selectedTags by remember { mutableStateOf(uiState.selectedTags) }
+    var birthday by remember { mutableStateOf(uiState.age) }
 
 
 
@@ -102,7 +101,7 @@ fun ProfileScreen(
             // Name
             TextBoxForProfile(
                 value = uiState.name,
-                onValueChange = { viewModel.updateName(it) },
+                onValueChange = { viewModel.updateProfile(name = it) },
                 label = { Text("Name") },
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
@@ -120,8 +119,8 @@ fun ProfileScreen(
                 )
             } else {
                 TextBoxForProfile(
-                    value = age,
-                    onValueChange = { age = it },
+                    value = uiState.age,
+                    onValueChange = {},
                     label = { Text("Age") },
                     isEditing = false,
                     modifier = Modifier.fillMaxWidth(textBoxWidth)
@@ -133,7 +132,7 @@ fun ProfileScreen(
             // Home Town
             TextBoxForProfile(
                 value = uiState.hometown,
-                onValueChange = { viewModel.updateHometown(it) },
+                onValueChange = { viewModel.updateProfile(hometown = it) },
                 label = { Text("Hometown") },
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
@@ -170,27 +169,37 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Bio
             MultiLineTextBoxForProfile(
                 value = uiState.bio,
-                onValueChange = { viewModel.updateBio(it) },
+                onValueChange = { viewModel.updateProfile(bio = it) },
                 label = { Text("About Me") },
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
         }
 
-        // edit button
+        // edit/save button
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomEnd
         ) {
-            // Existing profile screen content...
 
             FloatingActionButton(
                 modifier = Modifier
                     .padding(16.dp)
                     .size(56.dp),
-                onClick = { viewModel.toggleEditMode() }
+                onClick = {
+                    if (uiState.isEditing) {
+                        // Save all changes when exiting edit mode
+                        viewModel.updateProfile(
+                            location = location,
+                            tags = selectedTags,
+                            birthday = birthday
+                        )
+                    }
+                    viewModel.toggleEditMode()
+                }
             ) {
                 Icon(
                     imageVector = if (uiState.isEditing) Icons.Default.Check else Icons.Default.Edit,
