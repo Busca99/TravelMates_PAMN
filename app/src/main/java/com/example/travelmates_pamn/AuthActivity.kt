@@ -439,6 +439,7 @@ fun AuthScreen(onLoginSuccess: () -> Unit) {
                                         "id" to userId,
                                         "name" to name,
                                         "phoneNumber" to phoneNumber,
+                                        "birthday" to birthDate,
                                         "age" to age,
                                         "hometown" to hometown,
                                         "bio" to bio,
