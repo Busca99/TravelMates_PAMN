@@ -28,10 +28,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.travelmates_pamn.model.User
 import com.example.travelmates_pamn.ui.screen.*
 import com.example.travelmates_pamn.ui.theme.TravelMates_PAMNTheme
@@ -167,6 +169,9 @@ sealed class Screen(val route: String) {
     object MyProfile : Screen("profile")
     object Friends : Screen("friends")
     object IncomingRequests : Screen("incoming_requests")
+    object OtherProfile : Screen("otherProfile/{userId}") {
+        fun createRoute(userId: String) = "OtherProfile/$userId"
+    }
 }
 
 // Empty screen composables
@@ -193,7 +198,7 @@ private fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
 }
 
 @Composable
-fun PeopleInTownScreen() {
+fun PeopleInTownScreen(navController: NavController) {
     var users by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var currentLocation by remember { mutableStateOf<GeoPoint?>(null) }
@@ -273,7 +278,7 @@ fun PeopleInTownScreen() {
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                         .clickable {
-                            // Azione quando la riga è cliccata
+                            navController.navigate(Screen.OtherProfile.createRoute(user.id))
                         }
                 ) {
                     Box(
@@ -677,10 +682,19 @@ fun MainApp() {
                 modifier = Modifier.padding(contentPadding)
             ) {
                 composable(Screen.Home.route) { HomeScreen() }
-                composable(Screen.PeopleInTown.route) { PeopleInTownScreen() }
+                composable(Screen.PeopleInTown.route) { PeopleInTownScreen(navController) }
                 composable(Screen.MyProfile.route) { ProfileScreen() }
                 composable(Screen.Friends.route) { FriendsScreen() }
                 composable(Screen.IncomingRequests.route) { IncomingRequestsScreen() }
+                composable(
+                    route = Screen.OtherProfile.route,
+                    arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+                    ShowProfileScreen(userId = userId,
+                        
+                    )
+                }
             }
         }
     }
