@@ -11,6 +11,6 @@ data class User(
     val hometown: String = "",
     val photoUrl: String = "",
     val bio: String = "",
-    val tags: List<String> = listOf<String>(),
+    val interests: List<String> = listOf<String>(),
     val location: GeoPoint = GeoPoint(0.0, 0.0)
 )

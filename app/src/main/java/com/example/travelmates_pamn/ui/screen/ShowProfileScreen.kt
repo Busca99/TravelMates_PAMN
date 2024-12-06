@@ -149,7 +149,7 @@ fun ShowProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(0.dp),
                     //maxItemsInEachRow = Int.MAX_VALUE
                 ) {
-                    user.tags.forEach { tag ->
+                    user.interests.forEach { tag ->
                         AssistChip(
                             onClick = { /* Handle tag click */ },
                             label = { Text(tag) },
