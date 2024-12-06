@@ -173,7 +173,7 @@ sealed class Screen(val route: String) {
     object Friends : Screen("friends")
     object IncomingRequests : Screen("incoming_requests")
     object OtherProfile : Screen("otherProfile/{userId}") {
-        fun createRoute(userId: String) = "OtherProfile/$userId"
+        fun createRoute(userId: String) = "otherProfile/$userId"
     }
 }
 

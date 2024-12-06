@@ -37,26 +37,19 @@ fun getUserByIdxyz(userId: String, callback: (User?) -> Unit) {
         }
 }
 
-@Composable
-fun getUserById(userId: String): User {
-    var user by remember { mutableStateOf<User?>(null) }
+suspend fun fetchUserById(userId: String): User {
+    val firestore = FirebaseFirestore.getInstance()
 
-    LaunchedEffect(userId) {
-        val db = FirebaseFirestore.getInstance()
-        try {
-            val userDoc = db.collection("users").document(userId).get().await()
-            println(userDoc)
-            user = userDoc?.toObject(User::class.java)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+    return try {
+        val documentSnapshot = firestore.collection("users")
+            .document(userId)
+            .get()
+            .await()
+
+        documentSnapshot.toObject(User::class.java)
+            ?: throw NoSuchElementException("User not found")
+    } catch (e: Exception) {
+        // You might want to log the error here
+        throw IllegalStateException("Failed to retrieve user: ${e.message}")
     }
-
-    val userReturn: User = when (user) {
-        null -> User()
-        else -> user!!
-    }
-
-    return userReturn
-
 }
