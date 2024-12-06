@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.travelmates_pamn.R
 import com.example.travelmates_pamn.ui.ProfileViewModel
 
@@ -61,12 +62,8 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val editingState by viewModel.editingState.collectAsStateWithLifecycle()
     val allTags = LocalContext.current.resources.getStringArray(R.array.available_interests).toList()
-    
-    var age by remember { mutableStateOf(uiState.age) }
-    var location by remember { mutableStateOf(uiState.location) }
-    var selectedTags by remember { mutableStateOf(uiState.selectedTags) }
-    var birthday by remember { mutableStateOf(uiState.birthday) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -81,8 +78,8 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.Top
         ) {
             // Profile Picture
-            Image(
-                painter = painterResource(id = R.drawable.default_profile), // Replace with your drawable
+            AsyncImage(
+                model = uiState.photoUrl.ifEmpty { R.drawable.default_profile },
                 contentDescription = "Profile Picture",
                 modifier = Modifier
                     .size(120.dp)
@@ -98,8 +95,10 @@ fun ProfileScreen(
 
             // Name
             TextBoxForProfile(
-                value = uiState.name,
-                onValueChange = { viewModel.updateProfile(name = it) },
+                value = if (uiState.isEditing) editingState.name else uiState.name,
+                onValueChange = {
+                    viewModel.updateEditingField(name = it)
+                },
                 label = { Text("Name") },
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
@@ -107,11 +106,13 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Age
+            // Birthday/Age
             if (uiState.isEditing) {
                 BirthdayInput(
-                    birthday = uiState.birthday,
-                    onBirthdayChange = {birthday = it},
+                    birthday = editingState.birthday,
+                    onBirthdayChange = {
+                        viewModel.updateEditingField(birthday = it)
+                    },
                     isEditing = true,
                     modifier = Modifier.fillMaxWidth(textBoxWidth)
                 )
@@ -127,10 +128,12 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Home Town
+            // Hometown
             TextBoxForProfile(
-                value = uiState.hometown,
-                onValueChange = { viewModel.updateProfile(hometown = it) },
+                value = if (uiState.isEditing) editingState.hometown else uiState.hometown,
+                onValueChange = {
+                    viewModel.updateEditingField(hometown = it)
+                },
                 label = { Text("Hometown") },
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
@@ -138,9 +141,12 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Current Location
             TextBoxForProfile(
-                value = uiState.location,
-                onValueChange = {location = it},
+                value = if (uiState.isEditing) editingState.location else uiState.location,
+                onValueChange = {
+                    viewModel.updateEditingField(location = it)
+                },
                 label = { Text("Current Location") },
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
@@ -148,55 +154,67 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Interests Tags
             TagDropdownMenu(
                 availableTags = allTags,
-                selectedTags = uiState.selectedTags,
+                selectedTags = if (uiState.isEditing) editingState.selectedTags else uiState.selectedTags,
                 onTagSelect = { tag ->
-                    if (tag !in selectedTags) {
-                        selectedTags = selectedTags + tag
+                    val currentTags = if (uiState.isEditing)
+                        editingState.selectedTags
+                    else uiState.selectedTags
+
+                    val newTags = if (tag !in currentTags) {
+                        currentTags + tag
+                    } else {
+                        currentTags
                     }
+
+                    viewModel.updateEditingField(tags = newTags)
                 },
                 onTagRemove = { tag ->
-                    selectedTags = selectedTags.filter { it != tag }
+                    val currentTags = if (uiState.isEditing)
+                        editingState.selectedTags
+                    else uiState.selectedTags
+
+                    val newTags = currentTags.filter { it != tag }
+
+                    viewModel.updateEditingField(tags = newTags)
                 },
                 isEditing = uiState.isEditing,
-                modifier = Modifier
-                    //.align(Alignment.CenterHorizontally)
-                    .fillMaxWidth(textBoxWidth)
+                modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             // Bio
             MultiLineTextBoxForProfile(
-                value = uiState.bio,
-                onValueChange = { viewModel.updateProfile(bio = it) },
+                value = if (uiState.isEditing) editingState.bio else uiState.bio,
+                onValueChange = {
+                    viewModel.updateEditingField(bio = it)
+                },
                 label = { Text("About Me") },
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
         }
 
-        // edit/save button
+        // Edit/Save button
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomEnd
         ) {
-
             FloatingActionButton(
                 modifier = Modifier
                     .padding(16.dp)
                     .size(56.dp),
                 onClick = {
                     if (uiState.isEditing) {
-                        // Save all changes when exiting edit mode
-                        viewModel.updateProfile(
-                            location = location,
-                            tags = selectedTags,
-                            birthday = birthday
-                        )
+                        // Save profile when exiting edit mode
+                        viewModel.saveProfile()
+                    } else {
+                        // Enter edit mode
+                        viewModel.toggleEditMode()
                     }
-                    viewModel.toggleEditMode()
                 }
             ) {
                 Icon(
@@ -207,6 +225,7 @@ fun ProfileScreen(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -10,54 +10,39 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class ProfileViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
+    // Separate state for editing to allow more flexible modifications
+    private val _editingState = MutableStateFlow(EditingProfileState())
+    val editingState: StateFlow<EditingProfileState> = _editingState.asStateFlow()
+
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
     init {
-        Log.d("profileViewModel", "get auth user")
         fetchUserProfile()
     }
 
-    private fun fetchUserProfile() {
+    fun fetchUserProfile() {
         val currentUser = auth.currentUser
-        Log.d("ProfileViewModel", "Current user ID: ${currentUser?.uid}")
         if (currentUser == null) {
-            Log.e("ProfileViewModel", "No authenticated user found")
-            _uiState.update {
-                it.copy(
-                    uid = "",
-                    name = "No User",
-                    hometown = "",
-                    location = "",
-                    bio = "",
-                    selectedTags = emptyList(),
-                    photoUrl = "",
-                    age = ""
-                )
-            }
+            resetToDefaultState()
             return
         }
 
-        // Log the exact document path we're trying to access
         val userDocRef = firestore.collection("users").document(currentUser.uid)
-        Log.d("ProfileViewModel", "Attempting to fetch document at: users/${currentUser.uid}")
-
         userDocRef.get()
             .addOnSuccessListener { document ->
-                Log.d("ProfileViewModel", "Document exists: ${document.exists()}")
-                Log.d("ProfileViewModel", "Full document data: ${document.data}")
-
                 val userData = document.data ?: mapOf()
 
-                // Add more detailed logging for each field
-                Log.d("ProfileViewModel", "Birthday: ${userData["birthday"]}")
-                Log.d("ProfileViewModel", "Location: ${userData["location"]}")
-                Log.d("ProfileViewModel", "Tags: ${userData["interests"]}")
+                val birthday = userData["birthday"] as? String ?: ""
+                val calculatedAge = calculateAge(birthday)
 
                 _uiState.update {
                     it.copy(
@@ -71,17 +56,46 @@ class ProfileViewModel : ViewModel() {
                             else -> emptyList()
                         },
                         photoUrl = currentUser.photoUrl?.toString() ?: "",
-                        age = userData["age"] as? String ?: ""
+                        birthday = birthday,
+                        age = calculatedAge
+                    )
+                }
+
+                // Initialize editing state with current UI state
+                _editingState.update {
+                    EditingProfileState(
+                        name = _uiState.value.name,
+                        hometown = _uiState.value.hometown,
+                        location = _uiState.value.location,
+                        bio = _uiState.value.bio,
+                        selectedTags = _uiState.value.selectedTags,
+                        birthday = _uiState.value.birthday
                     )
                 }
             }
             .addOnFailureListener { exception ->
                 Log.e("ProfileViewModel", "Error fetching user profile", exception)
+                resetToDefaultState()
             }
     }
 
+    private fun resetToDefaultState() {
+        _uiState.update {
+            it.copy(
+                uid = "",
+                name = "No User",
+                hometown = "",
+                location = "",
+                bio = "",
+                selectedTags = emptyList(),
+                photoUrl = "",
+                age = "",
+                birthday = ""
+            )
+        }
+    }
 
-    fun updateProfile(
+    fun updateEditingField(
         name: String? = null,
         hometown: String? = null,
         location: String? = null,
@@ -89,61 +103,106 @@ class ProfileViewModel : ViewModel() {
         tags: List<String>? = null,
         birthday: String? = null
     ) {
-        val currentUser = auth.currentUser ?: return
-
-        // Update Firebase Authentication display name
-        name?.let { newName ->
-            val profileUpdates = UserProfileChangeRequest.Builder()
-                .setDisplayName(newName)
-                .build()
-
-            currentUser.updateProfile(profileUpdates)
-        }
-
-        // Update Firestore document
-        val updateData = mutableMapOf<String, Any>()
-        name?.let { updateData["name"] = it }
-        hometown?.let { updateData["hometown"] = it }
-        location?.let { updateData["location"] = it }
-        bio?.let { updateData["bio"] = it }
-        tags?.let { updateData["interests"] = it }
-        birthday?.let { updateData["birthday"] = it }
-
-        if (updateData.isNotEmpty()) {
-            firestore.collection("users").document(currentUser.uid)
-                .set(updateData, SetOptions.merge())
-                .addOnSuccessListener {
-                    // Update local UI state
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            name = name ?: currentState.name,
-                            hometown = hometown ?: currentState.hometown,
-                            location = location ?: currentState.location,
-                            bio = bio ?: currentState.bio,
-                            selectedTags = tags ?: currentState.selectedTags,
-                            age = birthday ?: currentState.age
-                        )
-                    }
-                }
-        }
-    }
-
-    fun toggleEditMode() {
-        _uiState.update { currentState ->
-            currentState.copy(isEditing = !currentState.isEditing)
+        _editingState.update { currentState ->
+            currentState.copy(
+                name = name ?: currentState.name,
+                hometown = hometown ?: currentState.hometown,
+                location = location ?: currentState.location,
+                bio = bio ?: currentState.bio,
+                selectedTags = tags ?: currentState.selectedTags,
+                birthday = birthday ?: currentState.birthday
+            )
         }
     }
 
     fun saveProfile() {
-        val currentState = _uiState.value
-        updateProfile(
-            name = currentState.name,
-            hometown = currentState.hometown,
-            location = currentState.location,
-            bio = currentState.bio,
-            tags = currentState.selectedTags,
-            birthday = currentState.age
+        val currentUser = auth.currentUser ?: return
+        val editState = _editingState.value
+
+        // Prepare update data
+        val updateData = mutableMapOf<String, Any>()
+        updateData["name"] = editState.name
+        updateData["hometown"] = editState.hometown
+        updateData["location"] = editState.location
+        updateData["bio"] = editState.bio
+        updateData["interests"] = editState.selectedTags
+        updateData["birthday"] = editState.birthday
+
+        // Update Firebase Authentication display name
+        currentUser.updateProfile(
+            UserProfileChangeRequest.Builder()
+                .setDisplayName(editState.name)
+                .build()
         )
-        toggleEditMode()
+
+        // Update Firestore
+        firestore.collection("users").document(currentUser.uid)
+            .set(updateData, SetOptions.merge())
+            .addOnSuccessListener {
+                // Update UI state after successful save
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        name = editState.name,
+                        hometown = editState.hometown,
+                        location = editState.location,
+                        bio = editState.bio,
+                        selectedTags = editState.selectedTags,
+                        birthday = editState.birthday,
+                        age = calculateAge(editState.birthday),
+                        isEditing = false
+                    )
+                }
+
+                // Reset editing state
+                _editingState.value = EditingProfileState()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("ProfileViewModel", "Failed to save profile", exception)
+            }
+    }
+
+    fun toggleEditMode() {
+        _uiState.update { it.copy(isEditing = !it.isEditing) }
+
+        // Reset or initialize editing state when toggling edit mode
+        if (_uiState.value.isEditing) {
+            _editingState.value = EditingProfileState(
+                name = _uiState.value.name,
+                hometown = _uiState.value.hometown,
+                location = _uiState.value.location,
+                bio = _uiState.value.bio,
+                selectedTags = _uiState.value.selectedTags,
+                birthday = _uiState.value.birthday
+            )
+        }
+    }
+
+    private fun calculateAge(birthday: String): String {
+        if (birthday.isEmpty()) return ""
+        return try {
+            val birthdayDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(birthday)
+            val today = Calendar.getInstance()
+            val birthCalendar = Calendar.getInstance()
+            birthdayDate?.let { birthCalendar.time = it }
+
+            var age = today.get(Calendar.YEAR) - birthCalendar.get(Calendar.YEAR)
+            if (today.get(Calendar.DAY_OF_YEAR) < birthCalendar.get(Calendar.DAY_OF_YEAR)) {
+                age--
+            }
+
+            age.toString()
+        } catch (e: Exception) {
+            ""
+        }
     }
 }
+
+// New data class for editing state
+data class EditingProfileState(
+    val name: String = "",
+    val hometown: String = "",
+    val location: String = "",
+    val bio: String = "",
+    val selectedTags: List<String> = emptyList(),
+    val birthday: String = ""
+)
