@@ -197,12 +197,3 @@ class ProfileViewModel : ViewModel() {
     }
 }
 
-// New data class for editing state
-data class EditingProfileState(
-    val name: String = "",
-    val hometown: String = "",
-    val location: String = "",
-    val bio: String = "",
-    val selectedTags: List<String> = emptyList(),
-    val birthday: String = ""
-)
