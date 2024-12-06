@@ -1,11 +1,15 @@
 package com.example.travelmates_pamn.ui
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.UploadTask
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,8 +26,13 @@ class ProfileViewModel : ViewModel() {
     private val _editingState = MutableStateFlow(EditingProfileState())
     val editingState: StateFlow<EditingProfileState> = _editingState.asStateFlow()
 
+    // state for showing warnings
+    private val _warningState = MutableStateFlow<String?>(null)
+    val warningState: StateFlow<String?> = _warningState.asStateFlow()
+
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val storage = FirebaseStorage.getInstance()
 
     init {
         fetchUserProfile()
@@ -55,7 +64,8 @@ class ProfileViewModel : ViewModel() {
                             is List<*> -> tags.filterIsInstance<String>()
                             else -> emptyList()
                         },
-                        photoUrl = currentUser.photoUrl?.toString() ?: "",
+                        photoUrl = userData["photoUrl"] as? String ?: "",
+                        // currentUser.photoUrl?.toString() ?: "",
                         birthday = birthday,
                         age = calculatedAge
                     )
@@ -69,7 +79,8 @@ class ProfileViewModel : ViewModel() {
                         location = _uiState.value.location,
                         bio = _uiState.value.bio,
                         selectedTags = _uiState.value.selectedTags,
-                        birthday = _uiState.value.birthday
+                        birthday = _uiState.value.birthday,
+                        photoUri = Uri.parse(_uiState.value.photoUrl)
                     )
                 }
             }
@@ -101,8 +112,19 @@ class ProfileViewModel : ViewModel() {
         location: String? = null,
         bio: String? = null,
         tags: List<String>? = null,
-        birthday: String? = null
+        birthday: String? = null,
+        photoUri: Uri? = null
     ) {
+        _warningState.value = null  // Clear any previous warnings
+
+        // Validate tags
+        tags?.let { newTags ->
+            if (newTags.size > 5) {
+                _warningState.value = "You can select a maximum of 5 interests"
+                return
+            }
+        }
+
         _editingState.update { currentState ->
             currentState.copy(
                 name = name ?: currentState.name,
@@ -110,14 +132,56 @@ class ProfileViewModel : ViewModel() {
                 location = location ?: currentState.location,
                 bio = bio ?: currentState.bio,
                 selectedTags = tags ?: currentState.selectedTags,
-                birthday = birthday ?: currentState.birthday
+                birthday = birthday ?: currentState.birthday,
+                photoUri = photoUri ?: currentState.photoUri
             )
         }
+    }
+
+    fun uploadProfilePhoto(photoUri: Uri) {
+        val currentUser = auth.currentUser ?: return
+        val photoRef = storage.reference.child("profile_photos/${currentUser.uid}")
+
+        photoRef.putFile(photoUri)
+            .continueWithTask { task: Task<UploadTask.TaskSnapshot> ->
+                if (!task.isSuccessful) {
+                    task.exception?.let { throw it }
+                }
+                photoRef.downloadUrl
+            }
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val downloadUri = task.result
+
+                    // Update Firebase Authentication
+                    val profileUpdates = UserProfileChangeRequest.Builder()
+                        .setPhotoUri(downloadUri)
+                        .build()
+                    currentUser.updateProfile(profileUpdates)
+
+                    // Update Firestore
+                    firestore.collection("users").document(currentUser.uid)
+                        .update("photoUrl", downloadUri.toString())
+
+                    // Update UI states
+                    _uiState.update { it.copy(photoUrl = downloadUri.toString()) }
+                    _editingState.update { it.copy(photoUri = null) }
+                } else {
+                    // Handle error
+                    _warningState.value = "Failed to upload photo"
+                }
+            }
     }
 
     fun saveProfile() {
         val currentUser = auth.currentUser ?: return
         val editState = _editingState.value
+
+        // Validate tags before saving
+        if (editState.selectedTags.size > 5) {
+            _warningState.value = "You can select a maximum of 5 interests"
+            return
+        }
 
         // Prepare update data
         val updateData = mutableMapOf<String, Any>()
@@ -134,6 +198,11 @@ class ProfileViewModel : ViewModel() {
                 .setDisplayName(editState.name)
                 .build()
         )
+
+        // Upload photo if a new one is selected
+        editState.photoUri?.let {
+            uploadProfilePhoto(it)
+        }
 
         // Update Firestore
         firestore.collection("users").document(currentUser.uid)
@@ -158,8 +227,10 @@ class ProfileViewModel : ViewModel() {
             }
             .addOnFailureListener { exception ->
                 Log.e("ProfileViewModel", "Failed to save profile", exception)
+                _warningState.value = "Failed to save profile"
             }
     }
+
 
     fun toggleEditMode() {
         _uiState.update { it.copy(isEditing = !it.isEditing) }
@@ -172,7 +243,8 @@ class ProfileViewModel : ViewModel() {
                 location = _uiState.value.location,
                 bio = _uiState.value.bio,
                 selectedTags = _uiState.value.selectedTags,
-                birthday = _uiState.value.birthday
+                birthday = _uiState.value.birthday,
+                photoUri = Uri.parse(_uiState.value.photoUrl)
             )
         }
     }
@@ -194,6 +266,10 @@ class ProfileViewModel : ViewModel() {
         } catch (e: Exception) {
             ""
         }
+    }
+
+    fun clearWarning() {
+        _warningState.value = null // Update the state here
     }
 }
 

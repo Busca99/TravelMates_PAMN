@@ -1,7 +1,11 @@
 package com.example.travelmates_pamn.ui.screen
 
-import androidx.compose.foundation.Image
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -44,8 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,7 +60,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.travelmates_pamn.R
 import com.example.travelmates_pamn.ui.ProfileViewModel
-
 
 const val textBoxWidth = 0.75f
 
@@ -63,7 +69,31 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val editingState by viewModel.editingState.collectAsStateWithLifecycle()
+    val warningState by viewModel.warningState.collectAsStateWithLifecycle()
     val allTags = LocalContext.current.resources.getStringArray(R.array.available_interests).toList()
+
+    // Photo picker launcher
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.updateEditingField(photoUri = it)
+        }
+    }
+
+    // Warning dialog
+    warningState?.let { warning ->
+        AlertDialog(
+            onDismissRequest = { /* Handled by ViewModel */ },
+            title = { Text("Warning") },
+            text = { Text(warning) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearWarning() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -77,10 +107,8 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Profile Picture
-            AsyncImage(
-                model = uiState.photoUrl.ifEmpty { R.drawable.default_profile },
-                contentDescription = "Profile Picture",
+            // Profile Picture with Click-to-Edit in Edit Mode
+            Box(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape)
@@ -89,7 +117,44 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.onSurface,
                         shape = CircleShape
                     )
-            )
+                    .clickable(enabled = uiState.isEditing) {
+                        if (uiState.isEditing) {
+                            launcher.launch("image/*")
+                        }
+                    }
+            ) {
+                // Prioritize editing state photo, then UI state photo, then default
+                val photoModel = when {
+                    uiState.isEditing && editingState.photoUri != null -> editingState.photoUri
+                    uiState.photoUrl.isNotEmpty() -> uiState.photoUrl
+                    else -> R.drawable.default_profile
+                }
+
+                AsyncImage(
+                    model = photoModel,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Overlay for edit mode
+                if (uiState.isEditing) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Profile Picture",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -164,6 +229,11 @@ fun ProfileScreen(
                     else uiState.selectedTags
 
                     val newTags = if (tag !in currentTags) {
+                        if (currentTags.size >= 5) {
+                            // Trigger warning if trying to add more than 5 tags
+                            viewModel.updateEditingField(tags = currentTags)
+                            return@TagDropdownMenu
+                        }
                         currentTags + tag
                     } else {
                         currentTags
@@ -183,6 +253,7 @@ fun ProfileScreen(
                 isEditing = uiState.isEditing,
                 modifier = Modifier.fillMaxWidth(textBoxWidth)
             )
+
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -309,7 +380,7 @@ fun TagDropdownMenu(
         ) {
             if (isEditing) {
                 TextField(
-                    value = "Select Tags",
+                    value = "Select at most 5 Tags",
                     onValueChange = {},
                     readOnly = true,
                     enabled = true,

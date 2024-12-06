@@ -1,5 +1,7 @@
 package com.example.travelmates_pamn.ui
 
+import android.net.Uri
+
 data class ProfileUiState(
     val uid: String = "",
     val name: String = "No User",
@@ -19,6 +21,7 @@ data class EditingProfileState(
     val hometown: String = "",
     val location: String = "",
     val bio: String = "",
+    val photoUri: Uri? = null,
     val selectedTags: List<String> = emptyList(),
     val birthday: String = ""
 )
