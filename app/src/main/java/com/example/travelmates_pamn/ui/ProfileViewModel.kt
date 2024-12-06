@@ -200,9 +200,12 @@ class ProfileViewModel : ViewModel() {
         )
 
         // Upload photo if a new one is selected
-        editState.photoUri?.let {
-            uploadProfilePhoto(it)
+        if (editState.photoUri.toString() != _uiState.value.photoUrl) {
+            editState.photoUri?.let {
+                uploadProfilePhoto(it)
+            }
         }
+
 
         // Update Firestore
         firestore.collection("users").document(currentUser.uid)
