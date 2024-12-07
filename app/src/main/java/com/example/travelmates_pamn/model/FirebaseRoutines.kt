@@ -1,12 +1,5 @@
 package com.example.travelmates_pamn.model
 
-import android.util.Log
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -62,7 +55,7 @@ suspend fun isRequestSent(userIdA: String, userIdB: String): Boolean {
 }
 
 
-suspend fun setFriendEntry(senderId: String, receiverId: String): Unit {
+suspend fun setFriendEntry(senderId: String, receiverId: String) {
     val db = FirebaseFirestore.getInstance()
 
     // If no existing friendship exists, create a new friendship request

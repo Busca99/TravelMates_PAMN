@@ -28,7 +28,7 @@ class ShowProfileViewModel : ViewModel() {
                         isLoading = false,
                         error = null,
                         isFriend = isFriend(user.id, authUser!!.uid),
-                        friendRequestSent = isRequestSent(user.id, authUser!!.uid),
+                        friendRequestSent = isRequestSent(user.id, authUser.uid),
                     )
                 }
             } catch (e: Exception) {
