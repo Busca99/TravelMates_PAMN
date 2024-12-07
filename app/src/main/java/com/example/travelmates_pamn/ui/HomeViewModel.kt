@@ -1,9 +1,13 @@
 package com.example.travelmates_pamn.ui
 
+import androidx.compose.material3.DrawerState
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
+import com.example.travelmates_pamn.Screen
+import com.example.travelmates_pamn.navigateToScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.GeoPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +41,16 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    fun navigateToPeopleInTown(navController: NavController) {
-        navController.navigate("people_in_town_screen")
+    fun navigateToPeopleInTown(
+        navController: NavController,
+        drawerState: DrawerState,
+        scope: CoroutineScope
+    ) {
+        navigateToScreen(
+            navController = navController,
+            route = Screen.PeopleInTown.route,
+            drawerState = drawerState,
+            scope = scope
+        )
     }
 }

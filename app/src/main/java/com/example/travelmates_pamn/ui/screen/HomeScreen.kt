@@ -21,16 +21,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +61,8 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     // Use a state to track permission
     var permissionGranted by remember { mutableStateOf(false) }
@@ -88,7 +93,13 @@ fun HomeScreen(
     Scaffold(
         bottomBar = {
             Button(
-                onClick = {},
+                onClick = {
+                    viewModel.navigateToPeopleInTown(
+                        navController = navController,
+                        drawerState = drawerState,
+                        scope = scope
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
@@ -145,16 +156,16 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Friends List Section
+            // preview people in town
             Text(
-                text = "Friends",
+                text = "People Close to You",
                 style = MaterialTheme.typography.titleMedium
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(500.dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -162,35 +173,6 @@ fun HomeScreen(
                 // TODO: Implement actual friends list
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Button - show more people in town
-//            Button(
-//                onClick = {},
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(vertical = 16.dp),
-//                colors = ButtonDefaults.buttonColors(
-//                    containerColor = MaterialTheme.colorScheme.primary
-//                ),
-//            ) {
-//                Row(
-//                    horizontalArrangement = Arrangement.Center,
-//                    verticalAlignment = Alignment.CenterVertically,
-//                    modifier = Modifier.padding(8.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.Person,
-//                        contentDescription = "Show more People in Town",
-//                        modifier = Modifier.size(24.dp)
-//                    )
-//                    Spacer(modifier = Modifier.width(8.dp))
-//                    Text(
-//                        text = "View More",
-//                        style = MaterialTheme.typography.bodyLarge
-//                    )
-//                }
-//            }
         }
     }
 }
