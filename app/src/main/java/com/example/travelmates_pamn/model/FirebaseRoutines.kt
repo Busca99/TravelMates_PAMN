@@ -26,3 +26,55 @@ suspend fun fetchUserById(userId: String): User {
         throw IllegalStateException("Failed to retrieve user: ${e.message}")
     }
 }
+
+suspend fun isFriend(userIdA: String, userIdB: String): Boolean {
+    val db = FirebaseFirestore.getInstance()
+
+    // Check if there's an accepted friendship document between the two users
+    val friendshipQuery = db.collection("friendships")
+        .whereArrayContainsAny("userIds", listOf(userIdA, userIdB))
+        .whereEqualTo("status", "accepted")
+        .get()
+        .await()
+
+    // Verify that the retrieved document actually contains BOTH user IDs
+    return friendshipQuery.documents.any { document ->
+        val userIds = document.get("userIds") as? List<String> ?: emptyList()
+        userIds.containsAll(listOf(userIdA, userIdB))
+    }
+}
+
+suspend fun isRequestSent(userIdA: String, userIdB: String): Boolean {
+    val db = FirebaseFirestore.getInstance()
+
+    // Check if there's an pending friendship document between the two users
+    val friendshipQuery = db.collection("friendships")
+        .whereArrayContainsAny("userIds", listOf(userIdA, userIdB))
+        .whereEqualTo("status", "pending")
+        .get()
+        .await()
+
+    // Verify that the retrieved document actually contains BOTH user IDs
+    return friendshipQuery.documents.any { document ->
+        val userIds = document.get("userIds") as? List<String> ?: emptyList()
+        userIds.containsAll(listOf(userIdA, userIdB))
+    }
+}
+
+
+suspend fun setFriendEntry(senderId: String, receiverId: String): Unit {
+    val db = FirebaseFirestore.getInstance()
+
+    // If no existing friendship exists, create a new friendship request
+    if (! isFriend(senderId, receiverId)) {
+        val friendshipDocument = hashMapOf(
+            "userIds" to listOf(senderId, receiverId),
+            "sender" to senderId,
+            "status" to "pending"
+        )
+
+        db.collection("friendships")
+            .add(friendshipDocument)
+            .await()
+    }
+}
