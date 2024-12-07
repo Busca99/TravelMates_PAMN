@@ -37,6 +37,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -47,6 +49,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.travelmates_pamn.R
 import com.example.travelmates_pamn.ui.HomeViewModel
 import com.google.firebase.firestore.GeoPoint
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -130,7 +133,9 @@ fun HomeScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 0.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+
         ) {
             // Greeting
             Text(
@@ -138,7 +143,7 @@ fun HomeScreen(
                 style = MaterialTheme.typography.headlineLarge
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // OpenStreetMap Container
             Box(
@@ -148,24 +153,25 @@ fun HomeScreen(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 OpenStreetMapView(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RectangleShape),
                     latitude = 37.7749,
                     longitude = -122.4194
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // preview people in town
             Text(
-                text = "People Close to You",
+                text = "Find People Close to You",
                 style = MaterialTheme.typography.titleMedium
             )
 
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(500.dp)
+                    .fillMaxSize()
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -211,6 +217,8 @@ fun OpenStreetMapView(
                 marker.position =
                     org.osmdroid.util.GeoPoint(startPoint.latitude, startPoint.longitude)
                 marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                marker.icon = ContextCompat.getDrawable(context, R.drawable.map_marker)
+                marker
                 marker.title = "Current Location"
                 overlays.add(marker)
             }
