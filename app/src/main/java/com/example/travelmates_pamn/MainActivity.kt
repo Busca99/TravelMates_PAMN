@@ -177,14 +177,6 @@ sealed class Screen(val route: String) {
     }
 }
 
-// Empty screen composables
-@Composable
-fun HomeScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Home Screen")
-    }
-}
-
 private fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
     val R = 6371.0 // Raggio della Terra in km
     val lat1 = Math.toRadians(loc1.latitude)
@@ -281,7 +273,7 @@ fun PeopleInTownScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                         .clickable {
-                            navController.navigate(Screen.OtherProfile.createRoute(user.id))
+                            navController.navigate(Screen.OtherProfile.createRoute(user.id)) //todo: use function 2x
                         }
                 ) {
                     if (user.photoUrl.isNotEmpty()) {
@@ -737,7 +729,7 @@ fun MainApp() {
                 startDestination = Screen.Home.route,
                 modifier = Modifier.padding(contentPadding)
             ) {
-                composable(Screen.Home.route) { HomeScreen() }
+                composable(Screen.Home.route) { HomeScreen(navController) }
                 composable(Screen.PeopleInTown.route) { PeopleInTownScreen(navController) }
                 composable(Screen.MyProfile.route) { ProfileScreen() }
                 composable(Screen.Friends.route) { FriendsScreen(navController) }

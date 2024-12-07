@@ -103,4 +103,8 @@ dependencies {
 
     implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // osmdroid for the map
+    implementation("org.osmdroid:osmdroid-android:6.1.16")
+    implementation("org.osmdroid:osmdroid-mapsforge:6.1.16")
 }
