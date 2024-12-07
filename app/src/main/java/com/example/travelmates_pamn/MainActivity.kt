@@ -337,7 +337,7 @@ fun PeopleInTownScreen(navController: NavController) {
 
 
 @Composable
-fun FriendsScreen() {
+fun FriendsScreen(navController: NavController) {
     var friends by remember { mutableStateOf<List<User>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -397,7 +397,7 @@ fun FriendsScreen() {
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                         .clickable {
-                            // Azione quando la riga è cliccata
+                            navController.navigate(Screen.OtherProfile.createRoute(friend.id))
                         }
                 ) {
                     if (friend.photoUrl.isNotEmpty()) {
@@ -740,7 +740,7 @@ fun MainApp() {
                 composable(Screen.Home.route) { HomeScreen() }
                 composable(Screen.PeopleInTown.route) { PeopleInTownScreen(navController) }
                 composable(Screen.MyProfile.route) { ProfileScreen() }
-                composable(Screen.Friends.route) { FriendsScreen() }
+                composable(Screen.Friends.route) { FriendsScreen(navController) }
                 composable(Screen.IncomingRequests.route) { IncomingRequestsScreen() }
                 composable(
                     route = Screen.OtherProfile.route,
