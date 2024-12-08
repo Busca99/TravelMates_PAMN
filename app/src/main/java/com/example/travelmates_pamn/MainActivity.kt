@@ -177,7 +177,7 @@ sealed class Screen(val route: String) {
     }
 }
 
-private fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
+fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
     val R = 6371.0 // Raggio della Terra in km
     val lat1 = Math.toRadians(loc1.latitude)
     val lat2 = Math.toRadians(loc2.latitude)

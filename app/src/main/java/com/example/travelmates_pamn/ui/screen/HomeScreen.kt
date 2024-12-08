@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +18,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +43,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -49,7 +57,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.travelmates_pamn.R
+import com.example.travelmates_pamn.Screen
+import com.example.travelmates_pamn.calculateDistance
 import com.example.travelmates_pamn.ui.HomeViewModel
 import com.google.firebase.firestore.GeoPoint
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -69,7 +80,6 @@ fun HomeScreen(
 
     // Use a state to track permission
     var permissionGranted by remember { mutableStateOf(false) }
-
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -92,6 +102,14 @@ fun HomeScreen(
             }
         }
     }
+
+    // Fetch nearby users
+    LaunchedEffect(permissionGranted, uiState.authUser?.id) {
+        if (permissionGranted && uiState.authUser?.id != null) {
+            viewModel.fetchNearbyUsers() // Move this logic to ViewModel
+        }
+    }
+
 
     Scaffold(
         bottomBar = {
@@ -139,46 +157,122 @@ fun HomeScreen(
         ) {
             // Greeting
             Text(
-                text = "Hi, ${uiState.username}!",
+                text = "Hi, ${uiState.authUser?.name}!",
                 style = MaterialTheme.typography.headlineLarge
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             // OpenStreetMap Container
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                OpenStreetMapView(
+            if (uiState.authUser?.location != null && uiState.authUser?.location != GeoPoint(0.0, 0.0)) {
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RectangleShape),
-                    latitude = 37.7749,
-                    longitude = -122.4194
-                )
+                        .fillMaxWidth()
+                        .height(250.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    OpenStreetMapView(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RectangleShape),
+                        latitude = uiState.authUser?.location!!.latitude,
+                        longitude = uiState.authUser?.location!!.longitude
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // preview people in town
+            // Preview people in town
             Text(
                 text = "Find People Close to You",
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Friends List Placeholder")
-                // TODO: Implement actual friends list
-            }
+            Spacer(modifier = Modifier.height(8.dp))
 
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (uiState.authUser?.location == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Could not get your location")
+                }
+            } else if (uiState.nearbyUsers.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Nobody in your area :(")
+                }
+            } else {
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(uiState.nearbyUsers) { user ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .width(120.dp)
+                                .clickable {
+                                    navController.navigate(Screen.OtherProfile.createRoute(user.id)) // todo: use navigate to screen fun
+                                }
+                        ) {
+                            if (user.photoUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = user.photoUrl,
+                                    contentDescription = "Profile picture of ${user.name}",
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = user.name.firstOrNull()?.toString() ?: "",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = MaterialTheme.typography.headlineSmall
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = user.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${calculateDistance(uiState.authUser!!.location, user.location).toInt()} km",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -218,7 +312,6 @@ fun OpenStreetMapView(
                     org.osmdroid.util.GeoPoint(startPoint.latitude, startPoint.longitude)
                 marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 marker.icon = ContextCompat.getDrawable(context, R.drawable.map_marker)
-                marker
                 marker.title = "Current Location"
                 overlays.add(marker)
             }
