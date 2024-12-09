@@ -1,9 +1,7 @@
 package com.example.travelmates_pamn.ui.screen
 
-//import com.google.maps.android.compose.*
 import android.Manifest
 import android.content.pm.PackageManager
-import android.preference.PreferenceManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -11,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,15 +19,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
@@ -157,15 +161,29 @@ fun HomeScreen(
 
         ) {
             // Greeting
-            Text(
-                text = "Hi, ${uiState.authUser?.name}!",
-                style = MaterialTheme.typography.headlineLarge
-            )
+            if (uiState.authUser != null) {
+                Text(
+                    text = "Hi, ${uiState.authUser?.name}!",
+                    style = MaterialTheme.typography.headlineLarge
+                )
+            } else {
+                Text(
+                    text = "Hi!",
+                    style = MaterialTheme.typography.headlineLarge
+                )
+            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // OpenStreetMap Container
             if (uiState.authUser?.location != null && uiState.authUser?.location != GeoPoint(0.0, 0.0)) {
+                Text(
+                    text = "You are here",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -179,6 +197,19 @@ fun HomeScreen(
                         latitude = uiState.authUser?.location!!.latitude,
                         longitude = uiState.authUser?.location!!.longitude
                     )
+
+                    IconButton(
+                        onClick = { }, //viewModel.updateLocation() },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .background(MaterialTheme.colorScheme.background, shape = CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh, // Or use a load/reload icon
+                            contentDescription = "Reload Location"
+                        )
+                    }
                 }
             }
 
@@ -220,18 +251,20 @@ fun HomeScreen(
                     Text("Nobody in your area :(")
                 }
             } else {
-
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(uiState.nearbyUsers) { user ->
+                    items(count = uiState.nearbyUsers.size) { index ->
+                        val user = uiState.nearbyUsers[index]
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .width(120.dp)
                                 .clickable {
-                                    navController.navigate(Screen.OtherProfile.createRoute(user.id)) // todo: use navigate to screen fun
+                                    navController.navigate(Screen.OtherProfile.createRoute(user.id))
                                 }
                         ) {
                             if (user.photoUrl.isNotEmpty()) {

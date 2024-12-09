@@ -43,14 +43,6 @@ class HomeViewModel : ViewModel() {
         //fetchUserData()
     }
 
-//        // TODO: Implement location fetching logic
-//        // Example placeholder:
-////        _uiState.update { currentState ->
-////            currentState.copy(
-////                authUser.location = GeoPoint(40.7128, -74.0060) // New York City coordinates
-////            )
-////        }
-//    }
 
     fun stopLoading() {
         _uiState.update {
@@ -78,7 +70,7 @@ class HomeViewModel : ViewModel() {
                         .sortedBy { user ->
                             calculateDistance(_uiState.value.authUser?.location!!, user.location)
                         }
-                        .take(4)
+                        .take(6)
 
                     _uiState.update {
                         it.copy(
