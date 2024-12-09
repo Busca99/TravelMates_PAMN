@@ -47,11 +47,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.math.*
 import android.app.Activity
+import androidx.preference.PreferenceManager
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
+import org.osmdroid.config.Configuration
 
 
 class MainActivity : ComponentActivity() {
@@ -74,6 +76,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // for the osm
+        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
 
         // Inizializza il client della posizione
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
