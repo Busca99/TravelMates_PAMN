@@ -1,6 +1,9 @@
 package com.example.travelmates_pamn.ui
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.material3.DrawerState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +13,8 @@ import com.example.travelmates_pamn.calculateDistance
 import com.example.travelmates_pamn.model.User
 import com.example.travelmates_pamn.model.fetchUserById
 import com.example.travelmates_pamn.navigateToScreen
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
@@ -39,16 +44,6 @@ class HomeViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e("HomeViewModel", e.message!!)
             }
-        }
-        //fetchUserData()
-    }
-
-
-    fun stopLoading() {
-        _uiState.update {
-            it.copy(
-                isLoading = false,
-            )
         }
     }
 
@@ -103,4 +98,71 @@ class HomeViewModel : ViewModel() {
             scope = scope
         )
     }
+
+    @SuppressLint("MissingPermission")
+    fun updateLocationMap(context: Context) {
+        viewModelScope.launch {
+            try {
+                _uiState.update {
+                    it.copy(isLoading = true)
+                }
+
+                val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+
+                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener { location ->
+                        if (location != null) {
+                            val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return@addOnSuccessListener
+                            val db = FirebaseFirestore.getInstance()
+                            val geoPoint = GeoPoint(location.latitude, location.longitude)
+
+                            db.collection("users")
+                                .whereEqualTo("id", currentUserId)
+                                .get()
+                                .addOnSuccessListener { querySnapshot ->
+                                    if (!querySnapshot.isEmpty) {
+                                        val document = querySnapshot.documents.first()
+                                        db.collection("users")
+                                            .document(document.id)
+                                            .update("location", geoPoint)
+                                            .addOnSuccessListener {
+                                                // Update local UI state with new location
+                                                _uiState.update {
+                                                    it.copy(
+                                                        authUser = it.authUser?.copy(location = geoPoint),
+                                                        isLoading = false
+                                                    )
+                                                }
+                                                fetchNearbyUsers()
+                                                Toast.makeText(context, "Location updated successfully", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("HomeViewModel", "Error updating location: ${e.message}")
+                                                _uiState.update {
+                                                    it.copy(isLoading = false)
+                                                }
+                                            }
+                                    }
+                                }
+                        } else {
+                            _uiState.update {
+                                it.copy(isLoading = false)
+                            }
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("HomeViewModel", "Error getting location: ${e.message}")
+                        _uiState.update {
+                            it.copy(isLoading = false)
+                        }
+                    }
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Error updating location: ${e.message}")
+                _uiState.update {
+                    it.copy(isLoading = false)
+                }
+            }
+        }
+    }
+
 }
