@@ -3,6 +3,7 @@ package com.example.travelmates_pamn.ui.screen
 //import com.google.maps.android.compose.*
 import android.Manifest
 import android.content.pm.PackageManager
+import android.preference.PreferenceManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -298,18 +299,12 @@ fun OpenStreetMapView(
                 // Set initial location and zoom
                 val mapController = controller
                 mapController.setZoom(12.0)
-                val startPoint = GeoPoint(latitude, longitude)
-                mapController.setCenter(
-                    org.osmdroid.util.GeoPoint(
-                        startPoint.latitude,
-                        startPoint.longitude
-                    )
-                )
+                val startPoint = org.osmdroid.util.GeoPoint(latitude, longitude)
+                mapController.setCenter(startPoint)
 
                 // Add a marker
                 val marker = Marker(this)
-                marker.position =
-                    org.osmdroid.util.GeoPoint(startPoint.latitude, startPoint.longitude)
+                marker.position = startPoint
                 marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 marker.icon = ContextCompat.getDrawable(context, R.drawable.map_marker)
                 marker.title = "Current Location"
