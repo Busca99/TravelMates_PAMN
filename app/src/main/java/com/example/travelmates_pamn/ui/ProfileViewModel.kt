@@ -38,7 +38,7 @@ class ProfileViewModel : ViewModel() {
         fetchUserProfile()
     }
 
-    fun fetchUserProfile() {
+    private fun fetchUserProfile() {
         val currentUser = auth.currentUser
         if (currentUser == null) {
             resetToDefaultState()
@@ -138,7 +138,7 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    fun uploadProfilePhoto(photoUri: Uri) {
+    private fun uploadProfilePhoto(photoUri: Uri) {
         val currentUser = auth.currentUser ?: return
         val photoRef = storage.reference.child("profile_photos/${currentUser.uid}")
 

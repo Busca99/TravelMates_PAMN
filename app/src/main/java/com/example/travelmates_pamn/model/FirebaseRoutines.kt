@@ -20,6 +20,7 @@ suspend fun fetchUserById(userId: String): User {
     }
 }
 
+@Suppress("UNCHECKED_CAST")
 suspend fun isFriend(userIdA: String, userIdB: String): Boolean {
     val db = FirebaseFirestore.getInstance()
 
@@ -37,6 +38,7 @@ suspend fun isFriend(userIdA: String, userIdB: String): Boolean {
     }
 }
 
+@Suppress("UNCHECKED_CAST")
 suspend fun isRequestSent(userIdA: String, userIdB: String): Boolean {
     val db = FirebaseFirestore.getInstance()
 

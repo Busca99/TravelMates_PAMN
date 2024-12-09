@@ -2,6 +2,7 @@ package com.example.travelmates_pamn
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -12,7 +13,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -20,11 +31,36 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -34,8 +70,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.preference.PreferenceManager
+import coil.compose.AsyncImage
 import com.example.travelmates_pamn.model.User
-import com.example.travelmates_pamn.ui.screen.*
+import com.example.travelmates_pamn.ui.screen.HomeScreen
+import com.example.travelmates_pamn.ui.screen.ProfileScreen
+import com.example.travelmates_pamn.ui.screen.ShowProfileScreen
 import com.example.travelmates_pamn.ui.theme.TravelMates_PAMNTheme
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -45,14 +85,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlin.math.*
-import android.app.Activity
-import androidx.preference.PreferenceManager
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
 import org.osmdroid.config.Configuration
 
 
@@ -278,7 +310,7 @@ fun PeopleInTownScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                         .clickable {
-                            navController.navigate(Screen.OtherProfile.createRoute(user.id)) //todo: use function 2x
+                            navController.navigate(Screen.OtherProfile.createRoute(user.id))
                         }
                 ) {
                     if (user.photoUrl.isNotEmpty()) {
@@ -332,7 +364,7 @@ fun PeopleInTownScreen(navController: NavController) {
 
 
 
-
+@Suppress("UNCHECKED_CAST")
 @Composable
 fun FriendsScreen(navController: NavController) {
     var friends by remember { mutableStateOf<List<User>>(emptyList()) }
@@ -757,7 +789,7 @@ fun MainApp() {
 fun navigateToScreen(
     navController: NavController,
     route: String,
-    drawerState: androidx.compose.material3.DrawerState,
+    drawerState: DrawerState,
     scope: kotlinx.coroutines.CoroutineScope
 ) {
     navController.navigate(route) {
