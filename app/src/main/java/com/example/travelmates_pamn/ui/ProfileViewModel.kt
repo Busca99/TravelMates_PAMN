@@ -7,6 +7,7 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
@@ -52,13 +53,15 @@ class ProfileViewModel : ViewModel() {
 
                 val birthday = userData["birthday"] as? String ?: ""
                 val calculatedAge = calculateAge(birthday)
+                val locationPoint: GeoPoint = userData["location"] as GeoPoint
+                val location = locationPoint.latitude.toString() + "°N, " + locationPoint.longitude.toString() + "°E"
 
                 _uiState.update {
                     it.copy(
                         uid = currentUser.uid,
                         name = currentUser.displayName ?: userData["name"] as? String ?: "No Name",
                         hometown = userData["hometown"] as? String ?: "",
-                        location = userData["location"] as? String ?: "",
+                        location = location,
                         bio = userData["bio"] as? String ?: "",
                         selectedTags = when (val tags = userData["interests"]) {
                             is List<*> -> tags.filterIsInstance<String>()

@@ -207,17 +207,19 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Current Location
-            TextBoxForProfile(
-                value = if (uiState.isEditing) editingState.location else uiState.location,
-                onValueChange = {
-                    viewModel.updateEditingField(location = it)
-                },
-                label = { Text("Current Location") },
-                isEditing = uiState.isEditing,
-                modifier = Modifier.fillMaxWidth(textBoxWidth)
-            )
+            if (!uiState.isEditing) {
+                TextBoxForProfile(
+                    value = uiState.location,
+                    onValueChange = {
+                        viewModel.updateEditingField(location = it)
+                    },
+                    label = { Text("Current Location") },
+                    isEditing = false,
+                    modifier = Modifier.fillMaxWidth(textBoxWidth)
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             // Interests Tags
             TagDropdownMenu(
