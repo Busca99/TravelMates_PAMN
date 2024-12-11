@@ -46,19 +46,40 @@ class AuthActivity : ComponentActivity() {
 
         auth = FirebaseAuth.getInstance()
 
-        // Forza il logout di qualsiasi utente -- DA CAMBIARE
-//        auth.signOut()
-//        Log.d("AuthActivity", "Forced logout")
-
         if (auth.currentUser != null) {
             Log.d("AuthActivity", "User logged in: ${auth.currentUser}")
-            Log.d("AuthActivity", "User already logged in, starting MainActivity")
-            startMainActivity()
+
+            // Verifica se l'utente esiste in Firestore
+            val db = FirebaseFirestore.getInstance()
+            db.collection("users")
+                .whereEqualTo("id", auth.currentUser?.uid)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (documents.isEmpty) {
+                        // L'utente non esiste in Firestore, fai il logout
+                        Log.d("AuthActivity", "User not found in Firestore, logging out")
+                        auth.signOut()
+                        setAuthScreen()
+                    } else {
+                        // L'utente esiste, procedi con MainActivity
+                        Log.d("AuthActivity", "User found in Firestore, starting MainActivity")
+                        startMainActivity()
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("AuthActivity", "Error checking user in Firestore: ${e.message}")
+                    // In caso di errore, per sicurezza fai il logout
+                    auth.signOut()
+                    setAuthScreen()
+                }
             return
         }
 
         Log.d("AuthActivity", "No user logged in, showing auth screen")
+        setAuthScreen()
+    }
 
+    private fun setAuthScreen() {
         setContent {
             TravelMates_PAMNTheme {
                 Surface(
