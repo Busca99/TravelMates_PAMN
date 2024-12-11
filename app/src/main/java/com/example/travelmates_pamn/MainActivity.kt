@@ -707,54 +707,64 @@ fun MainApp() {
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .padding(16.dp)
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Column {
-                        Text("Menu", modifier = Modifier.padding(bottom = 16.dp))
-                        HorizontalDivider()
+                    // Header del menu
+                    Text(
+                        "Menu",
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                    HorizontalDivider()
 
-                        // Navigation drawer items
-                        NavigationDrawerItem(
-                            label = { Text(text = "Home") },
-                            selected = currentRoute == Screen.Home.route,
-                            onClick = {
-                                navigateToScreen(navController, Screen.Home.route, drawerState, scope)
-                            }
-                        )
-                        NavigationDrawerItem(
-                            label = { Text(text = "View People in Town") },
-                            selected = currentRoute == Screen.PeopleInTown.route,
-                            onClick = {
-                                navigateToScreen(navController, Screen.PeopleInTown.route, drawerState, scope)
-                            }
-                        )
-                        NavigationDrawerItem(
-                            label = { Text(text = "My Profile") },
-                            selected = currentRoute == Screen.MyProfile.route,
-                            onClick = {
-                                navigateToScreen(navController, Screen.MyProfile.route, drawerState, scope)
-                            }
-                        )
-                        NavigationDrawerItem(
-                            label = { Text(text = "Friends") },
-                            selected = currentRoute == Screen.Friends.route,
-                            onClick = {
-                                navigateToScreen(navController, Screen.Friends.route, drawerState, scope)
-                            }
-                        )
-                        NavigationDrawerItem(
-                            label = { Text(text = "Incoming Requests") },
-                            selected = currentRoute == Screen.IncomingRequests.route,
-                            onClick = {
-                                navigateToScreen(navController, Screen.IncomingRequests.route, drawerState, scope)
-                            }
-                        )
+                    // Area scrollabile per gli elementi del menu
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(top = 8.dp)
+                    ) {
+                        items(1) {
+                            NavigationDrawerItem(
+                                label = { Text(text = "Home") },
+                                selected = currentRoute == Screen.Home.route,
+                                onClick = {
+                                    navigateToScreen(navController, Screen.Home.route, drawerState, scope)
+                                }
+                            )
+                            NavigationDrawerItem(
+                                label = { Text(text = "View People in Town") },
+                                selected = currentRoute == Screen.PeopleInTown.route,
+                                onClick = {
+                                    navigateToScreen(navController, Screen.PeopleInTown.route, drawerState, scope)
+                                }
+                            )
+                            NavigationDrawerItem(
+                                label = { Text(text = "My Profile") },
+                                selected = currentRoute == Screen.MyProfile.route,
+                                onClick = {
+                                    navigateToScreen(navController, Screen.MyProfile.route, drawerState, scope)
+                                }
+                            )
+                            NavigationDrawerItem(
+                                label = { Text(text = "Friends") },
+                                selected = currentRoute == Screen.Friends.route,
+                                onClick = {
+                                    navigateToScreen(navController, Screen.Friends.route, drawerState, scope)
+                                }
+                            )
+                            NavigationDrawerItem(
+                                label = { Text(text = "Incoming Requests") },
+                                selected = currentRoute == Screen.IncomingRequests.route,
+                                onClick = {
+                                    navigateToScreen(navController, Screen.IncomingRequests.route, drawerState, scope)
+                                }
+                            )
+                        }
                     }
 
-                    // Logout button at the bottom
+                    // Logout button sempre visibile in fondo
                     Button(
                         onClick = {
                             FirebaseAuth.getInstance().signOut()
@@ -768,8 +778,8 @@ fun MainApp() {
                             containerColor = MaterialTheme.colorScheme.error
                         ),
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
                             .fillMaxWidth()
+                            .padding(vertical = 16.dp)
                     ) {
                         Text("Logout")
                     }

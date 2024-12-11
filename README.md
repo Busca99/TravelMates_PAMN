@@ -16,7 +16,7 @@ _Profile pictures of ex users remain in the storage;
 To do:
 _Oggi tutti i nuovi utenti sembrano funzionare correttamente. Se dovessi avere problemi provare a cambiare il codice come consiglia claude nell'ultimo messaggio;
 _Quando apro l'app la prima volta sono già loggato (non so con che account);
-_Horizontal view;
 _Padding in the left?
 _Mappa in homepage non si carica --> o meglio si carica dopo molto tempo oppure riaprendo l'app;
 _Report + presentazione;
+_Home non scrollabile;
