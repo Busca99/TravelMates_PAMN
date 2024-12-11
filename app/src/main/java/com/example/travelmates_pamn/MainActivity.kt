@@ -506,7 +506,7 @@ fun FriendsScreen(navController: NavController) {
 }
 
 @Composable
-fun IncomingRequestsScreen() {
+fun IncomingRequestsScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -617,6 +617,9 @@ fun IncomingRequestsScreen() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 12.dp)
+                            .clickable {
+                                navController.navigate(Screen.OtherProfile.createRoute(sender.id))
+                            }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -821,7 +824,7 @@ fun MainApp() {
                 composable(Screen.PeopleInTown.route) { PeopleInTownScreen(navController) }
                 composable(Screen.MyProfile.route) { ProfileScreen() }
                 composable(Screen.Friends.route) { FriendsScreen(navController) }
-                composable(Screen.IncomingRequests.route) { IncomingRequestsScreen() }
+                composable(Screen.IncomingRequests.route) { IncomingRequestsScreen(navController) }
                 composable(
                     route = Screen.OtherProfile.route,
                     arguments = listOf(navArgument("userId") { type = NavType.StringType })
