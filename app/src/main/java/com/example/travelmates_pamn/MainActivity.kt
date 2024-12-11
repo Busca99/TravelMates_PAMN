@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,8 +86,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import org.osmdroid.config.Configuration
-
 
 class MainActivity : ComponentActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -110,7 +109,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // for the osm
-        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
+        org.osmdroid.config.Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
 
         // Inizializza il client della posizione
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -706,6 +705,11 @@ fun MainApp() {
     val currentRoute = navBackStackEntry?.destination?.route
     val context = LocalContext.current
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val landscapePadding = if (isLandscape) 32.dp else 0.dp
+
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -714,6 +718,7 @@ fun MainApp() {
                     modifier = Modifier
                         .fillMaxHeight()
                         .padding(horizontal = 16.dp)
+                        .padding(start = landscapePadding)
                 ) {
                     // Header del menu
                     Text(
@@ -818,7 +823,9 @@ fun MainApp() {
             NavHost(
                 navController = navController,
                 startDestination = Screen.Home.route,
-                modifier = Modifier.padding(contentPadding)
+                modifier = Modifier
+                    .padding(contentPadding)
+                    .padding(start = landscapePadding)
             ) {
                 composable(Screen.Home.route) { HomeScreen(navController) }
                 composable(Screen.PeopleInTown.route) { PeopleInTownScreen(navController) }
