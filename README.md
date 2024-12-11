@@ -11,14 +11,11 @@ TEST USERS(the password of each user is name of the user repeated 2 times):
 -Ludovica, Amsterdam
 
 Notes:
-_Current location update is happening only in the moment when logging/registration happens. If the location changes you have to log out and log in again;
 _Profile pictures of ex users remain in the Firebase storage;
 
 To do:
 _Padding in the left?
 _Map in homepage not always loading?
-_Home not scrollable;
-_Profiles in IncomingRequests are not clickable;
 
 -----------------
 
