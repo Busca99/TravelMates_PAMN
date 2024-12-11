@@ -231,361 +231,105 @@ fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
 
 @Composable
 fun PeopleInTownScreen(navController: NavController) {
-    var users by remember { mutableStateOf<List<User>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var currentLocation by remember { mutableStateOf<GeoPoint?>(null) }
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Text(
+            text = "People In Town",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(16.dp),
+            fontWeight = FontWeight.Bold
+        )
 
-    LaunchedEffect(Unit) {
-        val db = FirebaseFirestore.getInstance()
-        try {
-            Log.d("PeopleInTown", "Iniziando recupero posizione utente corrente...")
+        var users by remember { mutableStateOf<List<User>>(emptyList()) }
+        var isLoading by remember { mutableStateOf(true) }
+        var currentLocation by remember { mutableStateOf<GeoPoint?>(null) }
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-            // Cerca l'utente corrente
-            val userQuery = db.collectionGroup("users")
-                .whereEqualTo("id", currentUserId)
-                .get()
-                .await()
+        LaunchedEffect(Unit) {
+            val db = FirebaseFirestore.getInstance()
+            try {
+                Log.d("PeopleInTown", "Iniziando recupero posizione utente corrente...")
 
-            Log.d("PeopleInTown", "Query utente corrente eseguita")
-
-            if (!userQuery.isEmpty) {
-                val currentUser = userQuery.documents[0].toObject(User::class.java)
-                currentLocation = currentUser?.location
-                Log.d("PeopleInTown", "Location trovata: ${currentLocation?.latitude}, ${currentLocation?.longitude}")
-
-                if (currentLocation != null) {
-                    // Cerca gli altri utenti
-                    val allUsersQuery = db.collectionGroup("users")
-                        .whereNotEqualTo("id", currentUserId)
-                        .get()
-                        .await()
-
-                    users = allUsersQuery.documents
-                        .mapNotNull { it.toObject(User::class.java) }
-                        .filter { user ->
-                            calculateDistance(currentLocation!!, user.location) <= 30.0
-                        }
-                        .sortedBy { user ->
-                            calculateDistance(currentLocation!!, user.location)
-                        }
-
-                    Log.d("PeopleInTown", "Trovati ${users.size} utenti nelle vicinanze")
-                }
-            } else {
-                Log.e("PeopleInTown", "Utente corrente non trovato")
-            }
-        } catch (e: Exception) {
-            Log.e("PeopleInTown", "Errore generale: ${e.message}")
-            e.printStackTrace()
-        } finally {
-            isLoading = false
-        }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else if (currentLocation == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Could not get your location")
-            }
-        }
-    } else if (users.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("There's nobody in your area ):")
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            items(users) { user ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp)
-                        .clickable {
-                            navController.navigate(Screen.OtherProfile.createRoute(user.id))
-                        }
-                ) {
-                    if (user.photoUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = user.photoUrl,
-                            contentDescription = "Profile picture of ${user.name}",
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = user.name.firstOrNull()?.toString() ?: "",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column {
-                        Text(
-                            text = user.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${user.age}, from ${user.hometown}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = "Distance: ${calculateDistance(currentLocation!!, user.location).toInt()} km",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-
-@Suppress("UNCHECKED_CAST")
-@Composable
-fun FriendsScreen(navController: NavController) {
-    var friends by remember { mutableStateOf<List<User>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-    LaunchedEffect(Unit) {
-        val db = FirebaseFirestore.getInstance()
-        try {
-            // Ottieni tutte le amicizie accettate dove l'utente corrente è uno dei due amici
-            val friendships = db.collection("friendships")
-                .whereArrayContains("userIds", currentUserId)
-                .whereEqualTo("status", "accepted")
-                .get()
-                .await()
-
-            // Estrai gli ID degli amici
-            val friendIds = friendships.documents.flatMap { doc ->
-                doc.get("userIds") as List<String>
-            }.filter { it != currentUserId }
-
-            // Ottieni i dettagli degli utenti amici
-            if (friendIds.isNotEmpty()) {
-                val friendsSnapshots = db.collection("users")
-                    .whereIn("id", friendIds)
+                // Cerca l'utente corrente
+                val userQuery = db.collectionGroup("users")
+                    .whereEqualTo("id", currentUserId)
                     .get()
                     .await()
 
-                friends = friendsSnapshots.documents.mapNotNull { doc ->
-                    doc.toObject(User::class.java)
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        } finally {
-            isLoading = false
-        }
-    }
+                Log.d("PeopleInTown", "Query utente corrente eseguita")
 
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else if (friends.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("You still don't have friends!")
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            items(friends) { friend ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp)
-                        .clickable {
-                            navController.navigate(Screen.OtherProfile.createRoute(friend.id))
-                        }
-                ) {
-                    if (friend.photoUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = friend.photoUrl,
-                            contentDescription = "Profile picture of ${friend.name}",
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        // Fallback se non c'è foto profilo
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = friend.name.firstOrNull()?.toString() ?: "",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
+                if (!userQuery.isEmpty) {
+                    val currentUser = userQuery.documents[0].toObject(User::class.java)
+                    currentLocation = currentUser?.location
+                    Log.d(
+                        "PeopleInTown",
+                        "Location trovata: ${currentLocation?.latitude}, ${currentLocation?.longitude}"
+                    )
+
+                    if (currentLocation != null) {
+                        // Cerca gli altri utenti
+                        val allUsersQuery = db.collectionGroup("users")
+                            .whereNotEqualTo("id", currentUserId)
+                            .get()
+                            .await()
+
+                        users = allUsersQuery.documents
+                            .mapNotNull { it.toObject(User::class.java) }
+                            .filter { user ->
+                                calculateDistance(currentLocation!!, user.location) <= 30.0
+                            }
+                            .sortedBy { user ->
+                                calculateDistance(currentLocation!!, user.location)
+                            }
+
+                        Log.d("PeopleInTown", "Trovati ${users.size} utenti nelle vicinanze")
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    // Dettagli dell'amico
-                    Column {
-                        Text(
-                            text = friend.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${friend.age}, from ${friend.hometown}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                    }
+                } else {
+                    Log.e("PeopleInTown", "Utente corrente non trovato")
                 }
+            } catch (e: Exception) {
+                Log.e("PeopleInTown", "Errore generale: ${e.message}")
+                e.printStackTrace()
+            } finally {
+                isLoading = false
             }
         }
-    }
-}
 
-@Composable
-fun IncomingRequestsScreen() {
-    var incomingRequests by remember { mutableStateOf<List<User>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-    // Funzione per ricaricare le richieste
-    val loadRequests = suspend {
-        val db = FirebaseFirestore.getInstance()
-        val friendships = db.collection("friendships")
-            .whereArrayContains("userIds", currentUserId)
-            .whereEqualTo("status", "pending")
-            .whereNotEqualTo("sender", currentUserId)
-            .get()
-            .await()
-
-        val senderIds = friendships.documents.map { doc ->
-            doc.getString("sender")
-        }.filterNotNull()
-
-        if (senderIds.isNotEmpty()) {
-            val sendersSnapshots = db.collection("users")
-                .whereIn("id", senderIds)
-                .get()
-                .await()
-
-            incomingRequests = sendersSnapshots.documents.mapNotNull { doc ->
-                doc.toObject(User::class.java)
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (currentLocation == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Could not get your location")
+                }
+            }
+        } else if (users.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("There's nobody in your area ):")
             }
         } else {
-            incomingRequests = emptyList()
-        }
-    }
-
-    // Carica le richieste iniziali
-    LaunchedEffect(Unit) {
-        try {
-            loadRequests()
-        } catch (e: Exception) {
-            Log.e("IncomingRequests", "Errore: ${e.message}")
-        } finally {
-            isLoading = false
-        }
-    }
-
-    fun acceptFriendRequest(senderId: String) {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("friendships")
-            .whereArrayContains("userIds", currentUserId)
-            .whereEqualTo("sender", senderId)
-            .whereEqualTo("status", "pending")
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    document.reference.update("status", "accepted")
-                        .addOnSuccessListener {
-                            // Rimuovi l'utente dalla lista locale
-                            incomingRequests = incomingRequests.filter { it.id != senderId }
-                        }
-                }
-            }
-    }
-
-    fun rejectFriendRequest(senderId: String) {
-        val db = FirebaseFirestore.getInstance()
-        db.collection("friendships")
-            .whereArrayContains("userIds", currentUserId)
-            .whereEqualTo("sender", senderId)
-            .whereEqualTo("status", "pending")
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    document.reference.delete()
-                        .addOnSuccessListener {
-                            // Rimuovi l'utente dalla lista locale
-                            incomingRequests = incomingRequests.filter { it.id != senderId }
-                        }
-                }
-            }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else if (incomingRequests.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No incoming friend requests")
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            items(incomingRequests) { sender ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp)
-                ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                items(users) { user ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
+                            .clickable {
+                                navController.navigate(Screen.OtherProfile.createRoute(user.id))
+                            }
                     ) {
-                        if (sender.photoUrl.isNotEmpty()) {
+                        if (user.photoUrl.isNotEmpty()) {
                             AsyncImage(
-                                model = sender.photoUrl,
-                                contentDescription = "Profile picture of ${sender.name}",
+                                model = user.photoUrl,
+                                contentDescription = "Profile picture of ${user.name}",
                                 modifier = Modifier
                                     .size(60.dp)
                                     .clip(CircleShape),
@@ -599,7 +343,7 @@ fun IncomingRequestsScreen() {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = sender.name.firstOrNull()?.toString() ?: "",
+                                    text = user.name.firstOrNull()?.toString() ?: "",
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     style = MaterialTheme.typography.headlineSmall
                                 )
@@ -610,39 +354,336 @@ fun IncomingRequestsScreen() {
 
                         Column {
                             Text(
-                                text = sender.name,
+                                text = user.name,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${sender.age}, from ${sender.hometown}",
+                                text = "${user.age}, from ${user.hometown}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = "Distance: ${
+                                    calculateDistance(
+                                        currentLocation!!,
+                                        user.location
+                                    ).toInt()
+                                } km",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+@Suppress("UNCHECKED_CAST")
+@Composable
+fun FriendsScreen(navController: NavController) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Text(
+            text = "Friends",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(16.dp),
+            fontWeight = FontWeight.Bold
+        )
+
+        var friends by remember { mutableStateOf<List<User>>(emptyList()) }
+        var isLoading by remember { mutableStateOf(true) }
+
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        LaunchedEffect(Unit) {
+            val db = FirebaseFirestore.getInstance()
+            try {
+                // Ottieni tutte le amicizie accettate dove l'utente corrente è uno dei due amici
+                val friendships = db.collection("friendships")
+                    .whereArrayContains("userIds", currentUserId)
+                    .whereEqualTo("status", "accepted")
+                    .get()
+                    .await()
+
+                // Estrai gli ID degli amici
+                val friendIds = friendships.documents.flatMap { doc ->
+                    doc.get("userIds") as List<String>
+                }.filter { it != currentUserId }
+
+                // Ottieni i dettagli degli utenti amici
+                if (friendIds.isNotEmpty()) {
+                    val friendsSnapshots = db.collection("users")
+                        .whereIn("id", friendIds)
+                        .get()
+                        .await()
+
+                    friends = friendsSnapshots.documents.mapNotNull { doc ->
+                        doc.toObject(User::class.java)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isLoading = false
+            }
+        }
+
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (friends.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("You still don't have friends!")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                items(friends) { friend ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
+                            .clickable {
+                                navController.navigate(Screen.OtherProfile.createRoute(friend.id))
+                            }
+                    ) {
+                        if (friend.photoUrl.isNotEmpty()) {
+                            AsyncImage(
+                                model = friend.photoUrl,
+                                contentDescription = "Profile picture of ${friend.name}",
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            // Fallback se non c'è foto profilo
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = friend.name.firstOrNull()?.toString() ?: "",
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    style = MaterialTheme.typography.headlineSmall
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // Dettagli dell'amico
+                        Column {
+                            Text(
+                                text = friend.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${friend.age}, from ${friend.hometown}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Gray
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
 
+@Composable
+fun IncomingRequestsScreen() {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Text(
+            text = "Incoming Requests",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(16.dp),
+            fontWeight = FontWeight.Bold
+        )
+
+        var incomingRequests by remember { mutableStateOf<List<User>>(emptyList()) }
+        var isLoading by remember { mutableStateOf(true) }
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        // Funzione per ricaricare le richieste
+        val loadRequests = suspend {
+            val db = FirebaseFirestore.getInstance()
+            val friendships = db.collection("friendships")
+                .whereArrayContains("userIds", currentUserId)
+                .whereEqualTo("status", "pending")
+                .whereNotEqualTo("sender", currentUserId)
+                .get()
+                .await()
+
+            val senderIds = friendships.documents.map { doc ->
+                doc.getString("sender")
+            }.filterNotNull()
+
+            if (senderIds.isNotEmpty()) {
+                val sendersSnapshots = db.collection("users")
+                    .whereIn("id", senderIds)
+                    .get()
+                    .await()
+
+                incomingRequests = sendersSnapshots.documents.mapNotNull { doc ->
+                    doc.toObject(User::class.java)
+                }
+            } else {
+                incomingRequests = emptyList()
+            }
+        }
+
+        // Carica le richieste iniziali
+        LaunchedEffect(Unit) {
+            try {
+                loadRequests()
+            } catch (e: Exception) {
+                Log.e("IncomingRequests", "Errore: ${e.message}")
+            } finally {
+                isLoading = false
+            }
+        }
+
+        fun acceptFriendRequest(senderId: String) {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("friendships")
+                .whereArrayContains("userIds", currentUserId)
+                .whereEqualTo("sender", senderId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .addOnSuccessListener { documents ->
+                    for (document in documents) {
+                        document.reference.update("status", "accepted")
+                            .addOnSuccessListener {
+                                // Rimuovi l'utente dalla lista locale
+                                incomingRequests = incomingRequests.filter { it.id != senderId }
+                            }
+                    }
+                }
+        }
+
+        fun rejectFriendRequest(senderId: String) {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("friendships")
+                .whereArrayContains("userIds", currentUserId)
+                .whereEqualTo("sender", senderId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .addOnSuccessListener { documents ->
+                    for (document in documents) {
+                        document.reference.delete()
+                            .addOnSuccessListener {
+                                // Rimuovi l'utente dalla lista locale
+                                incomingRequests = incomingRequests.filter { it.id != senderId }
+                            }
+                    }
+                }
+        }
+
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (incomingRequests.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No incoming friend requests")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                items(incomingRequests) { sender ->
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
                     ) {
-                        IconButton(onClick = {
-                            rejectFriendRequest(sender.id)
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Reject",
-                                tint = Color.Red
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (sender.photoUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = sender.photoUrl,
+                                    contentDescription = "Profile picture of ${sender.name}",
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = sender.name.firstOrNull()?.toString() ?: "",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = MaterialTheme.typography.headlineSmall
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column {
+                                Text(
+                                    text = sender.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${sender.age}, from ${sender.hometown}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray
+                                )
+                            }
                         }
 
-                        IconButton(onClick = {
-                            acceptFriendRequest(sender.id)
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Accept",
-                                tint = Color.Green
-                            )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(onClick = {
+                                rejectFriendRequest(sender.id)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Reject",
+                                    tint = Color.Red
+                                )
+                            }
+
+                            IconButton(onClick = {
+                                acceptFriendRequest(sender.id)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Accept",
+                                    tint = Color.Green
+                                )
+                            }
                         }
                     }
                 }
