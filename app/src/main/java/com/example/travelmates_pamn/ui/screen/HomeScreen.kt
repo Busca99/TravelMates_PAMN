@@ -9,7 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,9 +19,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -69,6 +70,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -113,6 +115,7 @@ fun HomeScreen(
     }
 
 
+
     Scaffold(
         bottomBar = {
             Button(
@@ -149,157 +152,164 @@ fun HomeScreen(
             }
         }
     ) { innerPadding ->
-        Column(
+        // Replace nested scrollables with a single scrollable container
+        Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 0.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-
         ) {
-            // Greeting
-            if (uiState.authUser != null) {
-                Text(
-                    text = "Hi, ${uiState.authUser?.name}!",
-                    style = MaterialTheme.typography.headlineLarge
-                )
-            } else {
-                Text(
-                    text = "Hi!",
-                    style = MaterialTheme.typography.headlineLarge
-                )
-            }
+            // Use a single ScrollableColumn instead of nesting scrollable components
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+            ) {
+                // Greeting
+                if (uiState.authUser != null) {
+                    Text(
+                        text = "Hi, ${uiState.authUser?.name}!",
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    Text(
+                        text = "Hi!",
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // OpenStreetMap Container
-            if (uiState.authUser?.location != null && uiState.authUser?.location != GeoPoint(0.0, 0.0)) {
-                Text(
-                    text = "You are here",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    OpenStreetMapView(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RectangleShape),
-                        latitude = uiState.authUser?.location!!.latitude,
-                        longitude = uiState.authUser?.location!!.longitude
+                // OpenStreetMap section
+                if (uiState.authUser?.location != null && uiState.authUser?.location != GeoPoint(0.0, 0.0)) {
+                    Text(
+                        text = "You are here",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
 
-                    IconButton(
-                        onClick = { viewModel.updateLocationMap(context) }, //viewModel.updateLocation() },
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .background(MaterialTheme.colorScheme.background, shape = CircleShape)
+                            .fillMaxWidth()
+                            .height(250.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh, // Or use a load/reload icon
-                            contentDescription = "Reload Location"
+                        OpenStreetMapView(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RectangleShape),
+                            latitude = uiState.authUser?.location!!.latitude,
+                            longitude = uiState.authUser?.location!!.longitude
                         )
+
+                        IconButton(
+                            onClick = { viewModel.updateLocationMap(context) },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                                .background(MaterialTheme.colorScheme.background, shape = CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Reload Location"
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                // People in Town section
+                Text(
+                    text = "Find People Close to You",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
 
-            // Preview people in town
-            Text(
-                text = "Find People Close to You",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.authUser?.location == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Could not get your location")
-                }
-            } else if (uiState.nearbyUsers.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Nobody in your area :(")
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(count = uiState.nearbyUsers.size) { index ->
-                        val user = uiState.nearbyUsers[index]
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                // Conditional content for nearby users
+                when {
+                    uiState.isLoading -> {
+                        Box(
                             modifier = Modifier
-                                .width(120.dp)
-                                .clickable {
-                                    navController.navigate(Screen.OtherProfile.createRoute(user.id))
-                                }
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            if (user.photoUrl.isNotEmpty()) {
-                                AsyncImage(
-                                    model = user.photoUrl,
-                                    contentDescription = "Profile picture of ${user.name}",
+                            CircularProgressIndicator()
+                        }
+                    }
+                    uiState.authUser?.location == null -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Could not get your location")
+                        }
+                    }
+                    uiState.nearbyUsers.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Nobody in your area :(")
+                        }
+                    }
+                    else -> {
+                        // Nearby users grid
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            uiState.nearbyUsers.forEach { user ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .background(MaterialTheme.colorScheme.primary, CircleShape),
-                                    contentAlignment = Alignment.Center
+                                        .width(120.dp)
+                                        .clickable {
+                                            navController.navigate(Screen.OtherProfile.createRoute(user.id))
+                                        }
                                 ) {
+                                    if (user.photoUrl.isNotEmpty()) {
+                                        AsyncImage(
+                                            model = user.photoUrl,
+                                            contentDescription = "Profile picture of ${user.name}",
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .clip(CircleShape),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = user.name.firstOrNull()?.toString() ?: "",
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                style = MaterialTheme.typography.headlineSmall
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
                                     Text(
-                                        text = user.name.firstOrNull()?.toString() ?: "",
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        style = MaterialTheme.typography.headlineSmall
+                                        text = user.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "${calculateDistance(uiState.authUser!!.location, user.location).toInt()} km",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
                                     )
                                 }
                             }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = user.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${calculateDistance(uiState.authUser!!.location, user.location).toInt()} km",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
                         }
                     }
                 }
