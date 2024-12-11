@@ -14,7 +14,6 @@ Notes:
 _Profile pictures of ex users remain in the Firebase storage;
 
 To do:
-_Padding in the left?
 _Map in homepage not always loading?
 
 -----------------
