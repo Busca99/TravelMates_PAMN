@@ -353,6 +353,22 @@ fun OpenStreetMapView(
         },
         update = { view ->
             mapView = view
+
+
+            // Dynamically update the map with new location
+            val startPoint = org.osmdroid.util.GeoPoint(latitude, longitude)
+            view.controller.setCenter(startPoint)
+
+            // Update or add marker
+            val marker = Marker(view).apply {
+                position = startPoint
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                icon = ContextCompat.getDrawable(view.context, R.drawable.map_marker)
+                title = "Current Location"
+            }
+            view.overlays.clear() // Clear old markers
+            view.overlays.add(marker) // Add updated marker
+            view.invalidate() // Refresh the map
         }
     )
 

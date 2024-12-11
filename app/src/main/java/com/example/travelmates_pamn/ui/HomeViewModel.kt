@@ -141,6 +141,7 @@ class HomeViewModel : ViewModel() {
                                                 _uiState.update {
                                                     it.copy(isLoading = false)
                                                 }
+                                                Toast.makeText(context, "Could not get location", Toast.LENGTH_SHORT).show()
                                             }
                                     }
                                 }
