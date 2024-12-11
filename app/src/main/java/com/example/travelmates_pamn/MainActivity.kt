@@ -86,6 +86,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class MainActivity : ComponentActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -203,29 +207,29 @@ class MainActivity : ComponentActivity() {
 
 // Screen route definitions
 sealed class Screen(val route: String) {
-    object Home : Screen("home")
-    object PeopleInTown : Screen("people_in_town")
-    object MyProfile : Screen("profile")
-    object Friends : Screen("friends")
-    object IncomingRequests : Screen("incoming_requests")
-    object OtherProfile : Screen("otherProfile/{userId}") {
+    data object Home : Screen("home")
+    data object PeopleInTown : Screen("people_in_town")
+    data object MyProfile : Screen("profile")
+    data object Friends : Screen("friends")
+    data object IncomingRequests : Screen("incoming_requests")
+    data object OtherProfile : Screen("otherProfile/{userId}") {
         fun createRoute(userId: String) = "otherProfile/$userId"
     }
 }
 
 fun calculateDistance(loc1: GeoPoint, loc2: GeoPoint): Double {
-    val R = 6371.0 // Raggio della Terra in km
+    val r = 6371.0 // Raggio della Terra in km
     val lat1 = Math.toRadians(loc1.latitude)
     val lat2 = Math.toRadians(loc2.latitude)
     val dLat = Math.toRadians(loc2.latitude - loc1.latitude)
     val dLon = Math.toRadians(loc2.longitude - loc1.longitude)
 
-    val a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1) * Math.cos(lat2) *
-            Math.sin(dLon/2) * Math.sin(dLon/2)
-    val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    val a = sin(dLat/2) * sin(dLat/2) +
+            cos(lat1) * cos(lat2) *
+            sin(dLon/2) * sin(dLon/2)
+    val c = 2 * atan2(sqrt(a), sqrt(1-a))
 
-    return R * c
+    return r * c
 }
 
 @Composable
@@ -530,9 +534,9 @@ fun IncomingRequestsScreen(navController: NavController) {
                 .get()
                 .await()
 
-            val senderIds = friendships.documents.map { doc ->
+            val senderIds = friendships.documents.mapNotNull { doc ->
                 doc.getString("sender")
-            }.filterNotNull()
+            }
 
             if (senderIds.isNotEmpty()) {
                 val sendersSnapshots = db.collection("users")
