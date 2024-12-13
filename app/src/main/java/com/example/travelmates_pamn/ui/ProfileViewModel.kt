@@ -3,6 +3,7 @@ package com.example.travelmates_pamn.ui
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.update
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import com.example.travelmates_pamn.model.fetchUserById
+import kotlinx.coroutines.launch
 
 class ProfileViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -46,29 +49,27 @@ class ProfileViewModel : ViewModel() {
             return
         }
 
-        val userDocRef = firestore.collection("users").document(currentUser.uid)
-        userDocRef.get()
-            .addOnSuccessListener { document ->
-                val userData = document.data ?: mapOf()
+        viewModelScope.launch {
+            try {
+                val authUser = fetchUserById(currentUser.uid)
 
-                val birthday = userData["birthday"] as? String ?: ""
+                val birthday = authUser.birthday as? String ?: ""
                 val calculatedAge = calculateAge(birthday)
-                val locationPoint: GeoPoint = userData["location"] as GeoPoint
+                val locationPoint: GeoPoint = authUser.location
                 val location = locationPoint.latitude.toString() + "°N, " + locationPoint.longitude.toString() + "°E"
 
                 _uiState.update {
                     it.copy(
                         uid = currentUser.uid,
-                        name = currentUser.displayName ?: userData["name"] as? String ?: "No Name",
-                        hometown = userData["hometown"] as? String ?: "",
+                        name = currentUser.displayName ?: authUser.name as? String ?: "No Name",
+                        hometown = authUser.hometown as? String ?: "",
                         location = location,
-                        bio = userData["bio"] as? String ?: "",
-                        selectedTags = when (val tags = userData["interests"]) {
+                        bio = authUser.bio as? String ?: "",
+                        selectedTags = when (val tags = authUser.interests) {
                             is List<*> -> tags.filterIsInstance<String>()
                             else -> emptyList()
                         },
-                        photoUrl = userData["photoUrl"] as? String ?: "",
-                        // currentUser.photoUrl?.toString() ?: "",
+                        photoUrl = authUser.photoUrl as? String ?: "",
                         birthday = birthday,
                         age = calculatedAge
                     )
@@ -86,11 +87,12 @@ class ProfileViewModel : ViewModel() {
                         photoUri = Uri.parse(_uiState.value.photoUrl)
                     )
                 }
-            }
-            .addOnFailureListener { exception ->
-                Log.e("ProfileViewModel", "Error fetching user profile", exception)
+
+            } catch(e: Exception) {
+                Log.e("ProfileViewModel", "Error fetching user profile", e)
                 resetToDefaultState()
             }
+        }
     }
 
     private fun resetToDefaultState() {
