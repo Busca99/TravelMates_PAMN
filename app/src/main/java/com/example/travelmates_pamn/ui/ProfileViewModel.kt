@@ -65,10 +65,7 @@ class ProfileViewModel : ViewModel() {
                         hometown = authUser.hometown as? String ?: "",
                         location = location,
                         bio = authUser.bio as? String ?: "",
-                        selectedTags = when (val tags = authUser.interests) {
-                            is List<*> -> tags.filterIsInstance<String>()
-                            else -> emptyList()
-                        },
+                        selectedTags  = authUser.interests,
                         photoUrl = authUser.photoUrl as? String ?: "",
                         birthday = birthday,
                         age = calculatedAge
@@ -243,7 +240,7 @@ class ProfileViewModel : ViewModel() {
     fun toggleEditMode() {
         _uiState.update { it.copy(isEditing = !it.isEditing) }
 
-        // Reset or initialize editing state when toggling edit mode
+        // Reset or initialize editing state
         if (_uiState.value.isEditing) {
             _editingState.value = EditingProfileState(
                 name = _uiState.value.name,
